@@ -16,9 +16,12 @@ Questa guida descrive il flusso completo di utilizzo del plugin, dalla configura
 4. [Struttura dei file](#4-struttura-dei-file)
 5. [Fazioni IA](#5-fazioni-ia)
 6. [Azioni speciali](#6-azioni-speciali)
-7. [Riferimento comandi](#7-riferimento-comandi)
-8. [Gestione provider LLM](#8-gestione-provider-llm)
-9. [Domande frequenti](#9-domande-frequenti)
+7. [Oracolo](#7-oracolo)
+8. [Meccanica Leader](#8-meccanica-leader)
+9. [Accordi privati (fog of war)](#9-accordi-privati-fog-of-war)
+10. [Riferimento comandi](#10-riferimento-comandi)
+11. [Gestione provider LLM](#11-gestione-provider-llm)
+12. [Domande frequenti](#12-domande-frequenti)
 
 ---
 
@@ -92,6 +95,7 @@ Aggiungi le fazioni con il pulsante **+ Aggiungi fazione**. Per ogni fazione:
 | **Nome** | Nome completo della fazione |
 | **Obiettivo** | Obiettivo strategico — usato dall'LLM per valutare la coerenza delle azioni |
 | **Profilo** | Descrizione libera delle capacità, punti di forza e debolezze tipiche della fazione — contesto per l'LLM |
+| **Nome leader** *(opzionale)* | Se compilato, abilita la meccanica leader per questa fazione (disponibilità per turno, eliminazione). Se vuoto la fazione non ha leader. |
 
 Clicca **Crea campagna** — il plugin genera `campagna.yaml` e le schede fazione.
 
@@ -119,7 +123,14 @@ Per ogni fazione attiva usa **`BLOC: Dichiara azione`**.
 
 #### Fazioni IA
 
-Se la campagna ha fazioni marcate come `tipo: ia`, il plugin le gestisce automaticamente **prima** di aprire il form manuale: genera la dichiarazione di azione tramite LLM per ogni fazione IA che non ha ancora dichiarato, e mostra un progress notice per ciascuna. Il form si apre poi per le sole fazioni umane.
+Se la campagna ha fazioni marcate come `tipo: ia`, il plugin le gestisce automaticamente **prima** di aprire il form manuale. Per ogni fazione IA che non ha ancora dichiarato:
+
+1. Tira `rollTipoAzioneIA` (1d6) — ottiene un tipo tematico tra: *Consolidamento, Espansione, Attacco Diretto, Difesa, Diplomatico/Politico, Evento Speciale*
+2. Inietta il tipo nel prompt come vincolo narrativo (*"orienta l'azione verso questa categoria"*)
+3. Chiama l'LLM per generare `azione`, `metodo` e `argomento_vantaggio`
+4. Se la fazione ha un leader configurato, tira anche la disponibilità (vedi [Meccanica Leader](#8-meccanica-leader))
+
+Il form si apre poi per le sole fazioni umane.
 
 #### Form dichiarazione (fazioni umane)
 
@@ -194,6 +205,8 @@ Usa **`BLOC: Esegui tiri`**.
 Il plugin tira i dadi **deterministicamente** (algoritmo Mulberry32, seed = timestamp registrato). Non viene fatta nessuna chiamata LLM.
 
 Per i **conflitti diretti** (due fazioni si attaccano a vicenda), vengono generate pool separate e i tiri avvengono simultaneamente — il vincitore è determinato dal confronto dei risultati.
+
+Per i **conflitti IA-vs-IA** il plugin usa una tabella procedurale (`rollIAConflictOutcome`, 1d6) anziché le pool LLM: 1-2 → vittoria totale dell'attaccante, 3-4 → vittoria parziale, 5-6 → stallo. Questo riduce le chiamate LLM non necessarie per interazioni puramente meccaniche.
 
 La tabella esiti:
 
@@ -348,14 +361,17 @@ Puoi marcare una fazione come controllata dall'IA aggiungendo `tipo: ia` nella s
     Priva di territorio proprio, vulnerabile a blocchi economici.
   mc: 0
   leader:
+    nome: "Comandante Varro"
     presente: true
 ```
 
 Quando usi **`BLOC: Dichiara azione`**, il plugin:
 1. Rileva le fazioni `tipo: ia` che non hanno ancora dichiarato per il turno corrente
-2. Per ognuna chiama l'LLM con il profilo fazione e la storia recente, generando `azione`, `metodo` e `argomento_vantaggio`
-3. Salva il file come una normale dichiarazione (modificabile prima di procedere)
-4. Apre il form manuale per le fazioni umane
+2. Tira `rollTipoAzioneIA` (1d6) per determinare il tipo tematico dell'azione
+3. Se la fazione ha un leader, tira la disponibilità (1d6 + MC ≥ 4); se non disponibile, aggiorna `campagna.yaml` e scrive `azione_extra: false` nel file azione
+4. Chiama l'LLM con profilo, storia recente e tipo procedurale come vincolo narrativo
+5. Salva il file come una normale dichiarazione (modificabile prima di procedere)
+6. Apre il form manuale per le fazioni umane
 
 L'operazione è idempotente: se `azione-{id}.md` esiste già, quella fazione viene saltata.
 
@@ -371,13 +387,104 @@ Le azioni con `tipo_azione: latente` vengono salvate in `/fazioni/{slug}-latenti
 
 Le azioni con `tipo_azione: difesa` non richiedono obiettivo offensivo. La valutazione LLM le tratta come risposta reattiva: gli argomenti difensivi vengono valutati con più attenzione al contesto, e i conflitti si risolvono a favore del difensore in caso di parità di netto.
 
-### Fog of War
+---
 
-Gli accordi privati tra fazioni vanno in `campagna-privato.yaml` (nella stessa cartella di `campagna.yaml`). Questo file non viene mai incluso nel contesto LLM condiviso.
+## 7. Oracolo
+
+L'oracolo risponde a domande chiuse (sì/no) dell'arbitro usando un dado modificabile. È uno strumento da tavolo classico per campagne solitarie o per risolvere incertezze narrative senza coinvolgere l'LLM.
+
+**Comando:** `BLOC: Interroga oracolo`
+
+### Funzionamento
+
+1. Inserisci la **domanda** (es. *"I rinforzi arrivano in tempo?"*)
+2. Seleziona la **probabilità** in base al contesto di gioco:
+
+| Opzione | Modificatore | Effetto |
+|---|---|---|
+| Improbabile | −1 | Abbassa il risultato di 1 |
+| Neutro | 0 | Nessuna modifica |
+| Probabile | +1 | Alza il risultato di 1 |
+
+3. Il plugin tira 1d6, applica il modificatore (con clamp 1-6) e restituisce:
+
+| Valore modificato | Esito |
+|---|---|
+| 1-2 | **No** |
+| 3-4 | **Sì, ma...** — successo con complicazione |
+| 5-6 | **Sì** |
+
+Il risultato viene appeso a `campagne/{slug}/oracolo.md` con turno, dado, modificatore e valore finale — consultabile durante la sessione.
 
 ---
 
-## 7. Riferimento comandi
+## 8. Meccanica Leader
+
+Il leader è un personaggio chiave di una fazione che può influenzare le azioni in modo diretto (tipo azione `leader`) ma la cui disponibilità non è garantita a ogni turno.
+
+### Configurare un leader
+
+Aggiungi il campo `nome leader` nel wizard **Nuova campagna** (Passo 3 — Fazioni). Lasciarlo vuoto significa che la fazione non ha leader e la meccanica non si applica.
+
+In `campagna.yaml` il leader appare così:
+```yaml
+leader:
+  nome: "Generale Aurelio"
+  presente: true
+```
+
+Se il campo `leader` è assente, la fazione non ha meccanica leader.
+
+### Verificare la disponibilità
+
+**Comando:** `BLOC: Verifica disponibilità leader`
+
+Tira `1d6 + MC` per ogni fazione con leader. Se il risultato è ≥ 4 il leader è disponibile, altrimenti `presente` viene aggiornato a `false` in `campagna.yaml`. Una notice elenca i leader disponibili nel turno.
+
+Per le fazioni IA, la disponibilità viene verificata automaticamente durante `BLOC: Dichiara azione`.
+
+### Eliminazione di un leader
+
+**Comando:** `BLOC: Elimina leader fazione`
+
+Seleziona la fazione dal picker (mostra solo le fazioni con `leader.presente === true`). Il plugin:
+- Imposta `presente: false` nella fazione
+- Applica MC −1 (la perdita del leader indebolisce la coesione)
+
+> **Leader e tipo azione `leader`**: quando un giocatore dichiara un'azione con `tipo_azione: leader`, il form verifica automaticamente la disponibilità prima di procedere. Se il leader non è disponibile, la dichiarazione viene bloccata e l'evento registrato in `tiri.md`.
+
+---
+
+## 9. Accordi privati (fog of war)
+
+Gli accordi segreti tra fazioni — alleanze temporanee, cessate il fuoco tacite, promesse di non intervento — vengono registrati in `campagna-privato.yaml`. Questo file non viene **mai** incluso nel contesto inviato all'LLM.
+
+**Comando:** `BLOC: Registra accordo privato`
+
+### Form di registrazione
+
+| Campo | Descrizione |
+|---|---|
+| **Fazioni coinvolte** | Seleziona con toggle; richiede almeno 2 fazioni |
+| **Termini** | Testo libero che descrive l'accordo |
+| **Turno di scadenza** *(opzionale)* | Turno dopo il quale l'accordo cessa automaticamente |
+
+### Struttura del file
+
+```yaml
+accordi:
+  - fazioni: [draghi, mercenari]
+    termini: "I Draghi non intervengono a ovest del fiume. I Mercenari non accettano incarichi contro i Draghi per 3 turni."
+    turno_scadenza: 7
+  - fazioni: [negromanti, empire]
+    termini: "Cessate il fuoco segreto — nessun attacco diretto fino al turno 5."
+```
+
+> Il file viene creato automaticamente alla prima registrazione. La scadenza non viene applicata automaticamente: è un promemoria per l'arbitro.
+
+---
+
+## 10. Riferimento comandi
 
 | Comando | Stato richiesto | Descrizione |
 |---|---|---|
@@ -391,12 +498,16 @@ Gli accordi privati tra fazioni vanno in `campagna-privato.yaml` (nella stessa c
 | `BLOC: Genera conseguenze` | `tiri` | LLM Step 3 — crea `narrativa.md` |
 | `BLOC: Chiudi turno` | `review` | Archivia e prepara il turno successivo |
 | `BLOC: Stato campagna` | sempre | Mostra riepilogo campagna e fazioni |
+| `BLOC: Interroga oracolo` | sempre | Risposta Yes/No a una domanda (dado modificato), log in `oracolo.md` |
+| `BLOC: Verifica disponibilità leader` | sempre | Tira disponibilità leader, aggiorna `campagna.yaml` |
+| `BLOC: Elimina leader fazione` | sempre | Segna il leader come eliminato (MC −1) |
+| `BLOC: Registra accordo privato` | sempre | Salva un accordo segreto in `campagna-privato.yaml` |
 
 > Tutti i comandi sono accessibili dalla **Command Palette** (`Ctrl+P` / `Cmd+P`).
 
 ---
 
-## 8. Gestione provider LLM
+## 11. Gestione provider LLM
 
 ### Cambiare provider per una campagna
 
@@ -429,7 +540,7 @@ Modelli consigliati per structured output: `gemma3:12b`, `mistral-nemo`, `llama3
 
 ---
 
-## 9. Domande frequenti
+## 12. Domande frequenti
 
 **Il pulsante "Aggiorna lista" non mostra modelli**
 

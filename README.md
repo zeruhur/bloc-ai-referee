@@ -15,7 +15,11 @@ Il plugin implementa una pipeline LLM a step separati per valutare le dichiarazi
 - **Vault-first** — tutto lo stato di gioco vive in file Markdown/YAML nella vault; nessun database esterno
 - **Doppio layer di output** — YAML machine-readable per il contesto LLM + Markdown leggibile per i giocatori
 - **Chiavi API sicure** — salvate nei dati del plugin, mai nei file della vault
-- **Fazioni IA** — auto-genera la dichiarazione di azione per fazioni non controllate da giocatori
+- **Fazioni IA** — auto-genera la dichiarazione di azione per fazioni non controllate da giocatori, con tipo procedurale (tabella 1d6) iniettato nel prompt
+- **Tabelle procedurali IA** — tipo azione, reaction e conflitti IA-vs-IA risolti da tabelle Mulberry32, senza LLM
+- **Oracolo Yes/No** — risponde a domande dell'arbitro con dado modificabile (Improbabile/Neutro/Probabile), log in `oracolo.md`
+- **Meccanica Leader** — nome, disponibilità per turno (1d6 + MC) e eliminazione con penalità MC
+- **Accordi privati (fog of war)** — accordi segreti tra fazioni in `campagna-privato.yaml`, mai inviati all'LLM
 - **Contro-argomentazione automatizzata** — l'LLM può generare le contro-argomentazioni al posto dei giocatori
 - **Modalità asincrona** — i giocatori possono dichiarare in momenti diversi; la modalità sincrona è un sottoinsieme dello stesso flusso
 
@@ -65,6 +69,10 @@ Per la guida completa vedi [GUIDA_UTENTE.md](docs/GUIDA_UTENTE.md).
 | `BLOC: Genera conseguenze` | `tiri` | LLM Step 3 — genera la narrativa e aggiorna lo stato di campagna |
 | `BLOC: Chiudi turno` | `review` | Archivia il turno corrente e prepara quello successivo |
 | `BLOC: Stato campagna` | sempre | Mostra il riepilogo dello stato attuale |
+| `BLOC: Interroga oracolo` | sempre | Risposta Yes/No a una domanda (dado modificato), log in `oracolo.md` |
+| `BLOC: Verifica disponibilità leader` | sempre | Tira disponibilità leader per tutte le fazioni, aggiorna `campagna.yaml` |
+| `BLOC: Elimina leader fazione` | sempre | Segna il leader come eliminato (MC −1 per la fazione) |
+| `BLOC: Registra accordo privato` | sempre | Salva un accordo segreto tra fazioni in `campagna-privato.yaml` |
 
 ---
 
@@ -73,14 +81,16 @@ Per la guida completa vedi [GUIDA_UTENTE.md](docs/GUIDA_UTENTE.md).
 ```
 /campagne/
   /{slug-campagna}/
-    campagna.yaml          ← stato globale + config LLM + profili fazioni
+    campagna.yaml              ← stato globale + config LLM + profili fazioni
+    campagna-privato.yaml      ← accordi segreti (fog of war — mai inviato all'LLM)
+    oracolo.md                 ← log delle consultazioni oracolo
     /fazioni/
-      {slug}.md            ← scheda fazione (profilo, obiettivo)
+      {slug}.md                ← scheda fazione (profilo, obiettivo)
     /turno-01/
-      azione-{fazione}.md  ← dichiarazione azione con argomento di vantaggio
-      matrice.md           ← output LLM Step 1
-      tiri.md              ← log deterministico dei dadi
-      narrativa.md         ← output LLM Step 3 (per i giocatori)
+      azione-{fazione}.md      ← dichiarazione azione con argomento di vantaggio
+      matrice.md               ← output LLM Step 1
+      tiri.md                  ← log deterministico dei dadi
+      narrativa.md             ← output LLM Step 3 (per i giocatori)
     /turno-02/
       ...
 ```
