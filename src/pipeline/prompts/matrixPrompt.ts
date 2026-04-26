@@ -1,0 +1,33 @@
+import type { AzioneDeclaration, Campagna, GameStateDelta } from '../../types';
+import { stringifyYaml } from '../../utils/yaml';
+
+export function buildMatrixPrompt(
+  campagna: Campagna,
+  actions: AzioneDeclaration[],
+  compressedDeltas: GameStateDelta[],
+): { system: string; user: string } {
+  const deltaContext = compressedDeltas.length > 0
+    ? `\n\nSTORIA RECENTE (ultimi turni):\n${stringifyYaml(compressedDeltas)}`
+    : '';
+
+  const system = `Sei l'arbitro di una campagna di gioco di ruolo tattico chiamata "${campagna.meta.titolo}".
+
+PREMESSA:
+${campagna.premessa}${deltaContext}
+
+Il tuo compito è analizzare le dichiarazioni di azione delle fazioni e produrre una matrice strutturata che mostri chiaramente le interazioni tra le azioni. Rispondi SOLO con il JSON richiesto.`;
+
+  // Strip dettaglio_narrativo from LLM context
+  const llmActions = actions.map(({ dettaglio_narrativo: _dn, valutazione: _v, ...rest }) => rest);
+
+  const user = `DICHIARAZIONI DI AZIONE — Turno ${campagna.meta.turno_corrente}:
+
+${stringifyYaml(llmActions)}
+
+Genera la matrice delle azioni. Per ogni fazione indica:
+- azione dichiarata e metodo sintetico
+- vantaggi dichiarati
+- eventuali conflitti o sovrapposizioni con azioni di altre fazioni (lista degli ID fazione coinvolte, vuota se nessuna)`;
+
+  return { system, user };
+}
