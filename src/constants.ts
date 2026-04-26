@@ -43,7 +43,18 @@ export const DEFAULT_SETTINGS: BlocPluginSettings = {
   defaultProvider: 'google_ai_studio',
   ollamaBaseUrl: 'http://localhost:11434',
   openAIBaseUrl: 'https://api.openai.com/v1',
+  openRouterBaseUrl: 'https://openrouter.ai/api/v1',
   defaultCampaignSlug: '',
+  modelApiKeyEnvVar: '',
+  cachedModels: {},
+};
+
+export const PROVIDER_LABELS: Record<import('./types').LLMProvider, string> = {
+  google_ai_studio: 'Google AI Studio (Gemini)',
+  ollama: 'Ollama (locale)',
+  openai: 'OpenAI / compatibile',
+  anthropic: 'Anthropic (Claude)',
+  openrouter: 'OpenRouter',
 };
 
 export const LEADER_AVAILABILITY_THRESHOLD = 4;

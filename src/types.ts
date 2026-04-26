@@ -9,7 +9,7 @@ export type CampagnaStato =
   | 'review'
   | 'chiuso';
 
-export type LLMProvider = 'google_ai_studio' | 'ollama' | 'openai';
+export type LLMProvider = 'google_ai_studio' | 'ollama' | 'openai' | 'anthropic' | 'openrouter';
 export type TipoAzione = 'principale' | 'leader' | 'latente' | 'difesa';
 export type TipoFazione = 'normale' | 'ia';
 export type Esito = 'no_e' | 'no' | 'no_ma' | 'si_ma' | 'si' | 'si_e';
@@ -187,5 +187,8 @@ export interface BlocPluginSettings {
   defaultProvider: LLMProvider;
   ollamaBaseUrl: string;
   openAIBaseUrl: string;
+  openRouterBaseUrl: string;
   defaultCampaignSlug: string;
+  modelApiKeyEnvVar: string;
+  cachedModels: Partial<Record<LLMProvider, string[]>>;
 }

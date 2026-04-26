@@ -33,6 +33,16 @@ export async function createAdapter(config: LLMConfig, app: App): Promise<LLMAda
         ?? 'https://api.openai.com/v1';
       return new OpenAIAdapter(config.model, apiKey, baseUrl);
     }
+    case 'anthropic': {
+      const { AnthropicAdapter } = await import('./AnthropicAdapter');
+      return new AnthropicAdapter(config.model, apiKey);
+    }
+    case 'openrouter': {
+      const { OpenRouterAdapter } = await import('./OpenRouterAdapter');
+      const baseUrl = (app as any).plugins?.getPlugin('bloc-ai-referee')?.settings?.openRouterBaseUrl
+        ?? 'https://openrouter.ai/api/v1';
+      return new OpenRouterAdapter(config.model, apiKey, baseUrl);
+    }
   }
 }
 

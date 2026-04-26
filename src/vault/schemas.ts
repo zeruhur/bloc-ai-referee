@@ -22,7 +22,7 @@ const FazioneConfigSchema = z.object({
 });
 
 const LLMConfigSchema = z.object({
-  provider: z.enum(['google_ai_studio', 'ollama', 'openai']),
+  provider: z.enum(['google_ai_studio', 'ollama', 'openai', 'anthropic', 'openrouter']),
   model: z.string(),
   api_key_env: z.string(),
   temperature_mechanical: z.number(),
