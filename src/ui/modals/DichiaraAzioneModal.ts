@@ -29,7 +29,7 @@ export class DichiaraAzioneModal extends Modal {
     new Setting(contentEl)
       .setName('Fazione')
       .addDropdown(d => {
-        this.campagna.fazioni.forEach(f => d.addOption(f.id, f.nome));
+        this.campagna.fazioni.filter(f => f.tipo !== 'ia').forEach(f => d.addOption(f.id, f.nome));
         d.onChange(v => {
           this.selectedFazione = this.campagna.fazioni.find(f => f.id === v) ?? null;
           this.declaration.fazione = v;

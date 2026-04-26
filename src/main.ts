@@ -12,6 +12,7 @@ import { cmdEseguiTiri } from './commands/EseguiTiri';
 import { cmdGeneraConseguenze } from './commands/GeneraConseguenze';
 import { cmdChiudiTurno } from './commands/ChiudiTurno';
 import { cmdStatoCampagna } from './commands/StatoCampagna';
+import { cmdAutoControArgomentazione } from './commands/AutoControArgomentazione';
 
 export default class BlocPlugin extends Plugin {
   settings: BlocPluginSettings = DEFAULT_SETTINGS;
@@ -43,6 +44,12 @@ export default class BlocPlugin extends Plugin {
       id: 'aggiorna-svantaggi',
       name: 'BLOC: Aggiorna svantaggi',
       callback: () => cmdAggiornaSvantaggi(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'auto-contro-argomentazione',
+      name: 'BLOC: Auto contro-argomentazione',
+      callback: () => cmdAutoControArgomentazione(this.app, this),
     });
 
     this.addCommand({
