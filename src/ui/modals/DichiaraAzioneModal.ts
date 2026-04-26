@@ -6,10 +6,7 @@ import { appendToRollsFile } from '../../vault/VaultManager';
 
 export class DichiaraAzioneModal extends Modal {
   private declaration: Partial<AzioneDeclaration> = {
-    vantaggi_usati: [],
-    svantaggi_opposti: [],
-    svantaggi_propri_attivati: [],
-    aiuti_alleati: [],
+    argomenti_contro: [],
   };
   private selectedFazione: FazioneConfig | null = null;
 
@@ -25,21 +22,21 @@ export class DichiaraAzioneModal extends Modal {
     const { contentEl } = this;
     contentEl.createEl('h2', { text: `Dichiara azione — Turno ${this.campagna.meta.turno_corrente}` });
 
-    // Faction selector
+    // Faction selector — exclude IA factions (auto-generated)
+    const fazionUmane = this.campagna.fazioni.filter(f => f.tipo !== 'ia');
+
     new Setting(contentEl)
       .setName('Fazione')
       .addDropdown(d => {
-        this.campagna.fazioni.filter(f => f.tipo !== 'ia').forEach(f => d.addOption(f.id, f.nome));
+        fazionUmane.forEach(f => d.addOption(f.id, f.nome));
         d.onChange(v => {
           this.selectedFazione = this.campagna.fazioni.find(f => f.id === v) ?? null;
           this.declaration.fazione = v;
-          this.renderVantaggi(contentEl);
         });
-        // Init
-        const firstId = this.campagna.fazioni[0]?.id;
+        const firstId = fazionUmane[0]?.id;
         if (firstId) {
           d.setValue(firstId);
-          this.selectedFazione = this.campagna.fazioni[0];
+          this.selectedFazione = fazionUmane[0];
           this.declaration.fazione = firstId;
         }
       });
@@ -65,8 +62,10 @@ export class DichiaraAzioneModal extends Modal {
       .setName('Metodo (max 200 car.)')
       .addTextArea(t => t.onChange(v => { this.declaration.metodo = v.slice(0, 200); }));
 
-    const vantaggiContainer = contentEl.createDiv({ cls: 'bloc-vantaggi' });
-    this.renderVantaggi(vantaggiContainer);
+    new Setting(contentEl)
+      .setName('Argomento di vantaggio')
+      .setDesc('Perché questa fazione ha le capacità e le condizioni per riuscire in questa azione specifica.')
+      .addTextArea(t => t.onChange(v => { this.declaration.argomento_vantaggio = v; }));
 
     new Setting(contentEl)
       .setName('Dettaglio narrativo (opzionale)')
@@ -79,33 +78,10 @@ export class DichiaraAzioneModal extends Modal {
       .addEventListener('click', () => this.submit());
   }
 
-  private renderVantaggi(container: Element): void {
-    const existing = container.querySelector('.bloc-vantaggi-list');
-    if (existing) existing.remove();
-
-    const list = container.createDiv({ cls: 'bloc-vantaggi-list' });
-    if (!this.selectedFazione) return;
-
-    list.createEl('p', { text: 'Vantaggi da usare:' });
-    for (const v of this.selectedFazione.vantaggi) {
-      const label = list.createEl('label', { cls: 'bloc-checkbox-label' });
-      const checkbox = label.createEl('input', { type: 'checkbox' } as any);
-      (checkbox as HTMLInputElement).addEventListener('change', (e) => {
-        const checked = (e.target as HTMLInputElement).checked;
-        if (checked) {
-          this.declaration.vantaggi_usati = [...(this.declaration.vantaggi_usati ?? []), v.id];
-        } else {
-          this.declaration.vantaggi_usati = (this.declaration.vantaggi_usati ?? []).filter(id => id !== v.id);
-        }
-      });
-      label.createEl('span', { text: ` ${v.label}` });
-    }
-  }
-
   private async submit(): Promise<void> {
     const { campagna, declaration } = this;
 
-    if (!declaration.fazione || !declaration.azione || !declaration.metodo) {
+    if (!declaration.fazione || !declaration.azione || !declaration.metodo || !declaration.argomento_vantaggio) {
       new Notice('Compila tutti i campi obbligatori.');
       return;
     }
@@ -134,10 +110,8 @@ export class DichiaraAzioneModal extends Modal {
       tipo_azione: declaration.tipo_azione ?? 'principale',
       azione: declaration.azione!,
       metodo: declaration.metodo!,
-      vantaggi_usati: declaration.vantaggi_usati ?? [],
-      svantaggi_opposti: [],
-      svantaggi_propri_attivati: [],
-      aiuti_alleati: [],
+      argomento_vantaggio: declaration.argomento_vantaggio!,
+      argomenti_contro: [],
       dettaglio_narrativo: declaration.dettaglio_narrativo,
     };
 

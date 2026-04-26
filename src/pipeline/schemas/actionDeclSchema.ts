@@ -5,13 +5,13 @@ export const actionDeclOutputSchema = {
   properties: {
     azione: { type: 'string' },
     metodo: { type: 'string' },
-    vantaggi_usati: { type: 'array', items: { type: 'string' } },
+    argomento_vantaggio: { type: 'string' },
   },
-  required: ['azione', 'metodo', 'vantaggi_usati'],
+  required: ['azione', 'metodo', 'argomento_vantaggio'],
 } as const;
 
 export const ActionDeclOutputZod = z.object({
   azione: z.string().max(80),
   metodo: z.string().max(200),
-  vantaggi_usati: z.array(z.string()),
+  argomento_vantaggio: z.string(),
 });

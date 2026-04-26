@@ -15,21 +15,16 @@ export function buildActionDeclPrompt(
 PREMESSA:
 ${campagna.premessa}${deltaContext}
 
-Il tuo compito è generare la dichiarazione di azione per una fazione controllata dall'IA in modo che sia coerente con il suo obiettivo e con gli eventi recenti. Rispondi SOLO con il JSON richiesto.`;
-
-  const vantaggiList = fazione.vantaggi
-    .map(v => `- ${v.id}: ${v.label}`)
-    .join('\n');
+Il tuo compito è generare la dichiarazione di azione per una fazione controllata dall'IA, coerente con il suo obiettivo, profilo e gli eventi recenti. Rispondi SOLO con il JSON richiesto.`;
 
   const user = `FAZIONE: ${fazione.nome} (ID: ${fazione.id})
 OBIETTIVO: ${fazione.obiettivo}
-VANTAGGI DISPONIBILI:
-${vantaggiList}
+PROFILO: ${fazione.profilo}
 
 Genera la dichiarazione di azione per questa fazione al turno ${campagna.meta.turno_corrente}.
 - "azione": descrizione sintetica dell'azione (max 80 caratteri)
 - "metodo": come la fazione intende realizzarla (max 200 caratteri)
-- "vantaggi_usati": lista degli ID dei vantaggi che la fazione attiva (usa solo vantaggi presenti nella lista sopra, può essere vuota)`;
+- "argomento_vantaggio": argomento in linguaggio naturale che motiva perché questa fazione ha le capacità e le condizioni per riuscire in questa azione specifica (sii specifico al contesto dell'azione, non generare un elenco di caratteristiche)`;
 
   return { system, user };
 }

@@ -19,19 +19,25 @@ ${campagna.premessa}${deltaContext}
 MATRICE TURNO CORRENTE:
 ${stringifyYaml(matrice)}
 
-Il tuo compito è valutare la rilevanza contestuale dei vantaggi dichiarati per una singola azione. Per ogni vantaggio: confermalo, riducilo o negalo con motivazione narrativa concreta. Calcola il pool di dadi risultante seguendo le regole BLOC. Rispondi SOLO con il JSON richiesto.`;
+PROFILI FAZIONI:
+${campagna.fazioni.map(f => `- ${f.id} (${f.nome}): ${f.profilo}`).join('\n')}
 
-  // Strip dettaglio_narrativo from LLM context
+Il tuo compito è valutare la forza degli argomenti dichiarati per questa azione e calcolare il pool di dadi risultante. Rispondi SOLO con il JSON richiesto.`;
+
+  // Strip dettaglio_narrativo and valutazione from LLM context
   const { dettaglio_narrativo: _dn, valutazione: _v, ...llmAction } = action;
 
   const user = `AZIONE DA VALUTARE:
 ${stringifyYaml(llmAction)}
 
-Valuta ogni vantaggio dichiarato rispetto al metodo e al contesto. Determina quali svantaggi propri si attivano. Calcola:
-- positivi: numero di vantaggi confermati + aiuti alleati
-- negativi: numero di svantaggi attivati (propri + opposti)
-- netto: positivi - negativi
-- modalita: "alto" se netto > 0, "basso" se netto < 0, "neutro" se netto == 0`;
+REGOLE DI VALUTAZIONE:
+- "valutazione_vantaggio.peso" (0-3): quanti dadi positivi merita l'argomento di vantaggio della fazione, in base alla sua forza, pertinenza contestuale e coerenza con il profilo fazione. 0 = argomento invalido o irrilevante, 3 = argomento eccellente e decisivo.
+- Per ogni contro-argomento in "argomenti_contro", valuta "peso" (0-1): 0 = contro-argomento non valido o già confutato dall'azione, 1 = contro-argomento valido che aggiunge un dado negativo.
+- "pool.positivi" = valutazione_vantaggio.peso
+- "pool.negativi" = somma dei pesi di valutazioni_contro
+- "pool.netto" = positivi - negativi
+- "pool.modalita" = "alto" se netto > 0, "basso" se netto < 0, "neutro" se netto == 0
+- Includi una motivazione narrativa concreta per ogni valutazione.`;
 
   return { system, user };
 }

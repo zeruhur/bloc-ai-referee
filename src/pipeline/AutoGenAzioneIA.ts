@@ -17,7 +17,7 @@ export async function autoGenAzioneIA(
   const filePath = actionFilePath(slug, turno_corrente, fazione.id);
 
   if (await fileExists(app, filePath)) {
-    return; // già dichiarata — idempotente
+    return; // already declared — idempotent
   }
 
   const deltas = getCompressedDeltas(campagna.game_state_delta, campagna.llm.provider);
@@ -38,9 +38,7 @@ export async function autoGenAzioneIA(
     );
   }
 
-  const { azione, metodo, vantaggi_usati } = validation.data;
-  const validVantaggi = fazione.vantaggi.map(v => v.id);
-  const filteredVantaggi = vantaggi_usati.filter(id => validVantaggi.includes(id));
+  const { azione, metodo, argomento_vantaggio } = validation.data;
 
   await writeActionFile(app, slug, turno_corrente, {
     fazione: fazione.id,
@@ -49,10 +47,8 @@ export async function autoGenAzioneIA(
     tipo_azione: 'principale',
     azione,
     metodo,
-    vantaggi_usati: filteredVantaggi,
-    svantaggi_opposti: [],
-    svantaggi_propri_attivati: [],
-    aiuti_alleati: [],
+    argomento_vantaggio,
+    argomenti_contro: [],
   });
 
   new Notice(`Azione IA generata per ${fazione.nome}.`);

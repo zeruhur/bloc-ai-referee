@@ -68,7 +68,6 @@ export async function runStep2Evaluate(
     const filePath = actionFilePath(slug, turno_corrente, action.fazione);
     await patchActionFrontmatter<AzioneDeclaration>(app, filePath, {
       valutazione: evaluation,
-      svantaggi_propri_attivati: evaluation.svantaggi_attivati.map(s => s.id),
     } as any);
   }
 

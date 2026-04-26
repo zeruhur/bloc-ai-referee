@@ -58,12 +58,12 @@ export async function runStep1Matrix(
 }
 
 function buildMatrixFileContent(matrix: MatrixOutput, turno: number): string {
-  const headers = ['Fazione', 'Azione', 'Metodo', 'Vantaggi', 'Conflitti'];
+  const headers = ['Fazione', 'Azione', 'Metodo', 'Argomento vantaggio', 'Conflitti'];
   const rows = matrix.azioni.map(a => [
     a.fazione,
     a.azione,
     a.metodo,
-    a.vantaggi.join(', ') || '—',
+    a.argomento_vantaggio || '—',
     a.conflitti_con.join(', ') || '—',
   ]);
 

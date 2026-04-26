@@ -9,9 +9,19 @@ export const counterArgOutputSchema = {
         type: 'object',
         properties: {
           fazione_target: { type: 'string' },
-          svantaggi_opposti: { type: 'array', items: { type: 'string' } },
+          argomenti: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                fazione: { type: 'string' },
+                argomento: { type: 'string' },
+              },
+              required: ['fazione', 'argomento'],
+            },
+          },
         },
-        required: ['fazione_target', 'svantaggi_opposti'],
+        required: ['fazione_target', 'argomenti'],
       },
     },
   },
@@ -22,7 +32,12 @@ export const CounterArgOutputZod = z.object({
   contro_argomentazioni: z.array(
     z.object({
       fazione_target: z.string(),
-      svantaggi_opposti: z.array(z.string()),
+      argomenti: z.array(
+        z.object({
+          fazione: z.string(),
+          argomento: z.string(),
+        }),
+      ),
     }),
   ),
 });

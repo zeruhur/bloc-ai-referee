@@ -1,5 +1,5 @@
 import { App, Modal, Notice, Setting } from 'obsidian';
-import type { Campagna, FazioneConfig, LLMProvider, VantaggioToken } from '../../types';
+import type { Campagna, FazioneConfig, LLMProvider } from '../../types';
 import { PROVIDER_LABELS } from '../../constants';
 import { writeCampaignFile, writeFactionFile } from '../../vault/VaultManager';
 import { slugify } from '../../utils/slugify';
@@ -24,8 +24,7 @@ interface WizardState {
     id: string;
     nome: string;
     obiettivo: string;
-    vantaggi: VantaggioToken[];
-    svantaggio: { id: string; label: string };
+    profilo: string;
   }>;
 }
 
@@ -173,14 +172,11 @@ export class NuovaCampagnaModal extends Modal {
       new Setting(box).setName('Obiettivo').addText(t => t
         .setValue(f.obiettivo)
         .onChange(v => { f.obiettivo = v; }));
-      new Setting(box).setName('Svantaggio — ID').addText(t => t
-        .setPlaceholder('es. isolamento')
-        .setValue(f.svantaggio.id)
-        .onChange(v => { f.svantaggio.id = v; }));
-      new Setting(box).setName('Svantaggio — Etichetta').addText(t => t
-        .setPlaceholder('es. Isolamento diplomatico')
-        .setValue(f.svantaggio.label)
-        .onChange(v => { f.svantaggio.label = v; }));
+      new Setting(box).setName('Profilo')
+        .setDesc('Capacità, punti di forza e debolezze tipiche — usato come contesto per l\'LLM.')
+        .addTextArea(t => t
+          .setValue(f.profilo)
+          .onChange(v => { f.profilo = v; }));
 
       const removeBtn = box.createEl('button', { text: 'Rimuovi fazione', cls: 'mod-warning' });
       removeBtn.addEventListener('click', () => {
@@ -195,8 +191,7 @@ export class NuovaCampagnaModal extends Modal {
         id: '',
         nome: '',
         obiettivo: '',
-        vantaggi: [],
-        svantaggio: { id: '', label: '' },
+        profilo: '',
       });
       this.renderStep();
     });
@@ -252,9 +247,8 @@ export class NuovaCampagnaModal extends Modal {
           id: f.id,
           nome: f.nome,
           mc: 0,
-          vantaggi: f.vantaggi,
-          svantaggio: f.svantaggio,
           obiettivo: f.obiettivo,
+          profilo: f.profilo,
           leader: { presente: true },
         })) as FazioneConfig[],
         game_state_delta: [],

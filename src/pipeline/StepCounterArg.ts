@@ -1,5 +1,5 @@
 import type { App } from 'obsidian';
-import type { Campagna, LLMAdapter, MatrixOutput } from '../types';
+import type { AzioneDeclaration, Campagna, LLMAdapter, MatrixOutput } from '../types';
 import { loadActionsForTurn } from '../vault/ActionLoader';
 import { matrixFilePath, actionFilePath, patchActionFrontmatter } from '../vault/VaultManager';
 import { patchCampagnaStato } from '../vault/CampaignWriter';
@@ -49,9 +49,14 @@ export async function runStepCounterArg(
     const exists = await app.vault.adapter.exists(filePath);
     if (!exists) continue;
 
-    await patchActionFrontmatter(app, filePath, {
-      svantaggi_opposti: entry.svantaggi_opposti,
-    });
+    // Filter out empty arguments and self-references
+    const argomenti = entry.argomenti.filter(
+      a => a.argomento.trim() !== '' && a.fazione !== entry.fazione_target,
+    );
+
+    await patchActionFrontmatter<AzioneDeclaration>(app, filePath, {
+      argomenti_contro: argomenti,
+    } as any);
   }
 
   await patchCampagnaStato(app, slug, 'contro_args');

@@ -17,17 +17,20 @@ ${campagna.premessa}${deltaContext}
 
 Il tuo compito è analizzare le dichiarazioni di azione delle fazioni e produrre una matrice strutturata che mostri chiaramente le interazioni tra le azioni. Rispondi SOLO con il JSON richiesto.`;
 
-  // Strip dettaglio_narrativo from LLM context
+  // Strip dettaglio_narrativo and valutazione from LLM context
   const llmActions = actions.map(({ dettaglio_narrativo: _dn, valutazione: _v, ...rest }) => rest);
 
   const user = `DICHIARAZIONI DI AZIONE — Turno ${campagna.meta.turno_corrente}:
 
 ${stringifyYaml(llmActions)}
 
+PROFILI FAZIONI:
+${campagna.fazioni.map(f => `- ${f.id} (${f.nome}): ${f.profilo}`).join('\n')}
+
 Genera la matrice delle azioni. Per ogni fazione indica:
 - azione dichiarata e metodo sintetico
-- vantaggi dichiarati
-- eventuali conflitti o sovrapposizioni con azioni di altre fazioni (lista degli ID fazione coinvolte, vuota se nessuna)`;
+- argomento_vantaggio: sintesi dell'argomento di vantaggio dichiarato dalla fazione (copialo fedelmente dalla dichiarazione)
+- conflitti_con: lista degli ID fazione con cui c'è sovrapposizione o conflitto diretto (vuota se nessuna)`;
 
   return { system, user };
 }

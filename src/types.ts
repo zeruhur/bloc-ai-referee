@@ -18,24 +18,14 @@ export type MC = -1 | 0 | 1;
 
 // ---- Campaign data ----
 
-export interface VantaggioToken {
-  id: string;
-  label: string;
-}
-
-export interface SvantaggioToken {
-  id: string;
-  label: string;
-}
-
 export interface FazioneConfig {
   id: string;
   nome: string;
   mc: MC;
   tipo?: TipoFazione;
-  vantaggi: VantaggioToken[];
-  svantaggio: SvantaggioToken;
   obiettivo: string;
+  /** Free-form description of the faction's capabilities, strengths and weaknesses. */
+  profilo: string;
   leader: { presente: boolean };
 }
 
@@ -70,6 +60,11 @@ export interface Campagna {
 
 // ---- Action declaration ----
 
+export interface ArgomentoContro {
+  fazione: string;
+  argomento: string;
+}
+
 export interface AzioneDeclaration {
   fazione: string;
   giocatore: string;
@@ -77,10 +72,10 @@ export interface AzioneDeclaration {
   tipo_azione: TipoAzione;
   azione: string;
   metodo: string;
-  vantaggi_usati: string[];
-  svantaggi_opposti: string[];
-  svantaggi_propri_attivati: string[];
-  aiuti_alleati: string[];
+  /** Free-form argument for why this action should succeed. */
+  argomento_vantaggio: string;
+  /** Counter-arguments from opponent factions — filled at Checkpoint 1. */
+  argomenti_contro: ArgomentoContro[];
   dettaglio_narrativo?: string;
   valutazione?: EvaluationOutput;
 }
@@ -111,17 +106,12 @@ export interface MatrixEntry {
   fazione: string;
   azione: string;
   metodo: string;
-  vantaggi: string[];
+  argomento_vantaggio: string;
   conflitti_con: string[];
 }
 
 export interface MatrixOutput {
   azioni: MatrixEntry[];
-}
-
-export interface VantaggioValutato {
-  id: string;
-  motivazione: string;
 }
 
 export interface DicePool {
@@ -131,13 +121,17 @@ export interface DicePool {
   modalita: Modalita;
 }
 
+export interface ValutazioneArgomento {
+  /** 0-3 for vantaggio, 0-1 for each contro. */
+  peso: number;
+  motivazione: string;
+}
+
 export interface EvaluationOutput {
   fazione: string;
   azione: string;
-  vantaggi_confermati: string[];
-  vantaggi_ridotti: VantaggioValutato[];
-  vantaggi_negati: VantaggioValutato[];
-  svantaggi_attivati: VantaggioValutato[];
+  valutazione_vantaggio: ValutazioneArgomento;
+  valutazioni_contro: ({ fazione: string } & ValutazioneArgomento)[];
   pool: DicePool;
 }
 

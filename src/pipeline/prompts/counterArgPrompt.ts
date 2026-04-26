@@ -16,13 +16,13 @@ export function buildCounterArgPrompt(
 PREMESSA:
 ${campagna.premessa}${deltaContext}
 
-Il tuo compito è determinare quali fazioni opporrebbero razionalmente il proprio svantaggio alle azioni altrui, tenendo conto dei conflitti emersi nella matrice. Rispondi SOLO con il JSON richiesto.`;
+Il tuo compito è determinare quali fazioni avversarie avrebbero buone ragioni contestuali per opporsi all'azione altrui, e quale argomento specifico produrrebbero. Rispondi SOLO con il JSON richiesto.`;
 
-  const svantaggiPerFazione = campagna.fazioni
-    .map(f => `- ${f.id} (${f.nome}): svantaggio "${f.svantaggio.id}" — ${f.svantaggio.label}`)
+  const profiliFazioni = campagna.fazioni
+    .map(f => `- ${f.id} (${f.nome}): ${f.profilo}`)
     .join('\n');
 
-  // Strip narrative fields from action context
+  // Strip narrative fields
   const llmActions = actions.map(({ dettaglio_narrativo: _dn, valutazione: _v, ...rest }) => rest);
 
   const user = `MATRICE DELLE AZIONI — Turno ${campagna.meta.turno_corrente}:
@@ -31,14 +31,15 @@ ${stringifyYaml(matrix)}
 DICHIARAZIONI COMPLETE:
 ${stringifyYaml(llmActions)}
 
-SVANTAGGI DISPONIBILI PER FAZIONE:
-${svantaggiPerFazione}
+PROFILI FAZIONI:
+${profiliFazioni}
 
-Per ciascuna azione dichiarata (identificata da "fazione_target"), indica quali fazioni avversarie opporrebbero il proprio svantaggio in modo razionale. Considera i conflitti rilevati nella matrice.
-- Una fazione può opporre il proprio svantaggio a più azioni
-- Una fazione può anche non opporsi a nessuna azione (lista vuota)
+Per ciascuna azione (identificata da "fazione_target"), genera la lista degli argomenti contrari che le fazioni avversarie potrebbero razionalmente sollevare. Le regole:
+- Ogni fazione avversaria può avere un argomento contro un'azione (o nessuno — argomento vuoto "")
+- Gli argomenti devono essere specifici all'azione contestata, non generici
+- Considera i conflitti rilevati nella matrice come indicatori prioritari di chi si oppone a chi
 - Una fazione non può opporsi alla propria azione
-- Includi una entry per ogni fazione presente nelle dichiarazioni`;
+- Includi una entry per ogni fazione target presente nelle dichiarazioni`;
 
   return { system, user };
 }

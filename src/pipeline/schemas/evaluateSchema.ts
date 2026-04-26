@@ -1,42 +1,30 @@
 import { z } from 'zod';
 
+const valutazioneArgomentoSchema = {
+  type: 'object',
+  properties: {
+    peso: { type: 'integer' },
+    motivazione: { type: 'string' },
+  },
+  required: ['peso', 'motivazione'],
+} as const;
+
 export const evaluateOutputSchema = {
   type: 'object',
   properties: {
     fazione: { type: 'string' },
     azione: { type: 'string' },
-    vantaggi_confermati: { type: 'array', items: { type: 'string' } },
-    vantaggi_ridotti: {
+    valutazione_vantaggio: valutazioneArgomentoSchema,
+    valutazioni_contro: {
       type: 'array',
       items: {
         type: 'object',
         properties: {
-          id: { type: 'string' },
+          fazione: { type: 'string' },
+          peso: { type: 'integer' },
           motivazione: { type: 'string' },
         },
-        required: ['id', 'motivazione'],
-      },
-    },
-    vantaggi_negati: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          id: { type: 'string' },
-          motivazione: { type: 'string' },
-        },
-        required: ['id', 'motivazione'],
-      },
-    },
-    svantaggi_attivati: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          id: { type: 'string' },
-          motivazione: { type: 'string' },
-        },
-        required: ['id', 'motivazione'],
+        required: ['fazione', 'peso', 'motivazione'],
       },
     },
     pool: {
@@ -50,24 +38,16 @@ export const evaluateOutputSchema = {
       required: ['positivi', 'negativi', 'netto', 'modalita'],
     },
   },
-  required: [
-    'fazione',
-    'azione',
-    'vantaggi_confermati',
-    'vantaggi_ridotti',
-    'vantaggi_negati',
-    'svantaggi_attivati',
-    'pool',
-  ],
+  required: ['fazione', 'azione', 'valutazione_vantaggio', 'valutazioni_contro', 'pool'],
 } as const;
 
 export const EvaluateOutputZod = z.object({
   fazione: z.string(),
   azione: z.string(),
-  vantaggi_confermati: z.array(z.string()),
-  vantaggi_ridotti: z.array(z.object({ id: z.string(), motivazione: z.string() })),
-  vantaggi_negati: z.array(z.object({ id: z.string(), motivazione: z.string() })),
-  svantaggi_attivati: z.array(z.object({ id: z.string(), motivazione: z.string() })),
+  valutazione_vantaggio: z.object({ peso: z.number(), motivazione: z.string() }),
+  valutazioni_contro: z.array(
+    z.object({ fazione: z.string(), peso: z.number(), motivazione: z.string() }),
+  ),
   pool: z.object({
     positivi: z.number(),
     negativi: z.number(),
