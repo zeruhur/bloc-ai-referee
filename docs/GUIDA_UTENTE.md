@@ -91,37 +91,11 @@ Aggiungi le fazioni con il pulsante **+ Aggiungi fazione**. Per ogni fazione:
 |---|---|
 | **Nome** | Nome completo della fazione |
 | **Obiettivo** | Obiettivo strategico — usato dall'LLM per valutare la coerenza delle azioni |
-| **Svantaggio ID** | Identificatore breve del svantaggio strutturale (es. `isolamento`) |
-| **Svantaggio Etichetta** | Descrizione leggibile (es. "Isolamento diplomatico") |
-
-> I **vantaggi** si aggiungono direttamente in `/fazioni/{slug}.md` dopo la creazione, modificando il frontmatter YAML.
+| **Profilo** | Descrizione libera delle capacità, punti di forza e debolezze tipiche della fazione — contesto per l'LLM |
 
 Clicca **Crea campagna** — il plugin genera `campagna.yaml` e le schede fazione.
 
-### Aggiungere vantaggi alle fazioni
-
-Apri `/campagne/{slug}/fazioni/{fazione}.md` e modifica il frontmatter:
-
-```yaml
----
-id: draghi
-nome: "Draghi delle Montagne Eremite"
-mc: 0
-vantaggi:
-  - id: posizioni_note
-    label: "Conoscenza posizioni nemiche"
-  - id: mobilita_aerea
-    label: "Mobilità aerea e terreno nativo"
-svantaggio:
-  id: isolamento
-  label: "Isolamento diplomatico"
-obiettivo: "Proteggere le montagne eremitiche"
-leader:
-  presente: true
----
-```
-
-**`mc`** è il Modificatore Coesione: `-1`, `0`, o `+1`. Influenza i tiri di disponibilità leader e viene aggiornato automaticamente dopo ogni turno.
+> **Il profilo è contestuale.** Non descrivere vantaggi e svantaggi come liste fisse: descrivili come caratteristiche narrative che l'LLM interpreterà caso per caso in base all'azione specifica dichiarata.
 
 ---
 
@@ -143,25 +117,31 @@ I comandi sono disponibili solo quando lo stato è quello corretto — Obsidian 
 
 Per ogni fazione attiva usa **`BLOC: Dichiara azione`**.
 
-Si apre un form con questi campi:
+#### Fazioni IA
+
+Se la campagna ha fazioni marcate come `tipo: ia`, il plugin le gestisce automaticamente **prima** di aprire il form manuale: genera la dichiarazione di azione tramite LLM per ogni fazione IA che non ha ancora dichiarato, e mostra un progress notice per ciascuna. Il form si apre poi per le sole fazioni umane.
+
+#### Form dichiarazione (fazioni umane)
 
 | Campo | Limite | Note |
 |---|---|---|
-| **Fazione** | — | Seleziona dalla lista delle fazioni della campagna |
+| **Fazione** | — | Seleziona tra le fazioni umane della campagna |
 | **Giocatore** | — | Nome o handle del giocatore |
 | **Tipo azione** | — | `principale`, `leader`, `latente`, `difesa` |
 | **Azione** | 80 car. | Descrizione sintetica dell'obiettivo |
 | **Metodo** | 200 car. | Come viene eseguita l'azione |
-| **Vantaggi da usare** | — | Checkbox dai vantaggi disponibili sulla scheda fazione |
-| **Dettaglio narrativo** | illimitato | Solo per il layer umano — **non viene mai inviato all'LLM** |
+| **Argomento di vantaggio** | libero | Testo libero: *perché* questa fazione ha le capacità e le condizioni per riuscire in questa azione specifica |
+| **Dettaglio narrativo** | libero | Solo per il layer umano — **non viene mai inviato all'LLM** |
 
-Il form crea `/campagne/{slug}/turno-NN/azione-{fazione}.md`.
+> **L'argomento di vantaggio è contestuale all'azione.** Non è un elenco di caratteristiche generiche della fazione, ma una motivazione specifica: *"I Draghi attaccano di notte sfruttando la loro visione notturna e l'effetto sorpresa sul versante nord, ancora privo di sentinelle"*.
 
 > **Tipo `leader`**: prima di aprire il form, il plugin tira automaticamente `1d6 + MC`. Se il risultato è inferiore a 4, il leader non è disponibile: il form non si apre e l'evento viene registrato in `tiri.md`.
 
-Quando tutte le fazioni hanno dichiarato, procedi con il passo successivo.
+Il form crea `/campagne/{slug}/turno-NN/azione-{fazione}.md`.
 
-**Genera la matrice** con **`BLOC: Genera matrice`**:
+#### Generazione matrice
+
+Quando tutte le fazioni hanno dichiarato, usa **`BLOC: Genera matrice`**:
 
 L'LLM analizza tutte le dichiarazioni e produce:
 - Un file `matrice.md` con tabella leggibile (per i giocatori)
@@ -175,13 +155,17 @@ Lo stato avanza a `matrice_generata`.
 
 **Stato richiesto:** `matrice_generata`
 
-Condividi `matrice.md` con i giocatori. Ogni giocatore può dichiarare quali svantaggi oppone alle azioni avversarie (sincrono o asincrono via chat/forum).
+Dopo aver condiviso `matrice.md` con i giocatori, le fazioni avversarie possono sollevare argomenti contrari alle azioni altrui. Hai due modalità:
 
-Quando hai raccolto tutte le contro-argomentazioni, usa **`BLOC: Aggiorna svantaggi`**:
+#### Modalità manuale — `BLOC: Aggiorna svantaggi`
 
-Si apre una finestra con l'elenco delle azioni. Per ogni azione puoi selezionare quali svantaggi degli avversari vengono opposti.
+Si apre una finestra con l'elenco delle azioni. Per ogni azione, puoi inserire un argomento libero per ciascuna fazione avversaria (lascia vuoto se quella fazione non si oppone). Utile per campagne con giocatori attivi che discutono le contro-argomentazioni in chat o forum.
 
-Lo stato avanza a `contro_args`.
+#### Modalità automatica — `BLOC: Auto contro-argomentazione`
+
+L'LLM analizza la matrice e i profili delle fazioni e determina autonomamente quali fazioni si opporrebbero razionalmente a quali azioni, generando l'argomento contestuale. Ideale per campagne solitarie o quando vuoi velocizzare il flusso.
+
+Entrambe le modalità portano allo stato `contro_args`.
 
 ---
 
@@ -189,17 +173,17 @@ Lo stato avanza a `contro_args`.
 
 **Stato richiesto:** `contro_args`
 
-#### Valutazione vantaggi
+#### Valutazione argomenti
 
 Usa **`BLOC: Valuta azioni`**.
 
 Il plugin chiama l'LLM **una volta per ogni fazione** (non in batch, per evitare cross-contaminazione del ragionamento). Una notifica mostra il progresso: *"Valutando azioni: 2/5"*.
 
-Per ogni azione l'LLM:
-- Conferma, riduce o nega ogni vantaggio dichiarato (con motivazione)
-- Identifica gli svantaggi propri che si attivano
-- Calcola il pool di dadi: `positivi = vantaggi confermati + aiuti alleati`, `negativi = svantaggi attivati + svantaggi opposti`
-- Determina la modalità: `alto` (prendi il massimo), `basso` (prendi il minimo), `neutro` (primo dado)
+Per ogni azione l'LLM valuta:
+- **Argomento di vantaggio** → `peso` da 0 a 3 (quanti dadi positivi merita, in base a forza e pertinenza contestuale)
+- **Ogni contro-argomento** → `peso` 0 o 1 (se il contro-argomento è valido aggiunge un dado negativo)
+- **Pool risultante**: `positivi = peso vantaggio`, `negativi = somma pesi contro`, `netto = positivi − negativi`
+- **Modalità**: `alto` (prendi il massimo), `basso` (prendi il minimo), `neutro` (primo dado)
 
 Lo stato avanza a `valutazione`.
 
@@ -285,13 +269,11 @@ fazioni:
   - id: draghi
     nome: "Draghi delle Montagne Eremite"
     mc: 0           # modificatore coesione: -1 | 0 | +1
-    vantaggi:
-      - id: mobilita_aerea
-        label: "Mobilità aerea"
-    svantaggio:
-      id: isolamento
-      label: "Isolamento diplomatico"
     obiettivo: "Proteggere le montagne"
+    profilo: >
+      Forza militare aerea superiore e conoscenza del territorio montano.
+      Isolati diplomaticamente e dipendenti dall'iniziativa individuale dei clan.
+      Vulnerabili a campagne prolungate di logoramento.
     leader:
       presente: false
 
@@ -317,18 +299,27 @@ giocatore: "@M0rgH4N"
 turno: 4
 tipo_azione: principale
 azione: "Interrompere il rituale dei Negromanti"
-metodo: "Attacco aereo + valanga sul versante nemico"
-vantaggi_usati:
-  - mobilita_aerea
-svantaggi_opposti: []
-svantaggi_propri_attivati: []
-aiuti_alleati: []
+metodo: "Attacco aereo sul versante nord al crepuscolo, preceduto da valanga controllata"
+argomento_vantaggio: >
+  I Draghi attaccano di notte sfruttando la visione notturna e la familiarità con il
+  versante nord, ancora privo di sentinelle dopo la ritirata dei Negromanti al passo est.
+  La valanga controllata isola il sito prima dell'assalto aereo.
+argomenti_contro:
+  - fazione: negromanti
+    argomento: >
+      Il rituale è in fase avanzata: anche un'interruzione parziale produrrà un'onda
+      di energia non controllata che potrebbe danneggiare gli stessi Draghi.
 dettaglio_narrativo: >
   Solo layer umano — non entra nel contesto LLM.
 valutazione:
+  valutazione_vantaggio:
+    peso: 2
+    motivazione: "Argomento solido e contestuale. La finestra notturna è sfruttata in modo convincente."
+  valutazioni_contro:
+    - fazione: negromanti
+      peso: 1
+      motivazione: "Il rischio dell'onda residua è plausibile e aggiunge un dado negativo."
   pool: { positivi: 2, negativi: 1, netto: 1, modalita: alto }
-  vantaggi_confermati: [mobilita_aerea]
-  ...
 ---
 ```
 
@@ -336,7 +327,7 @@ valutazione:
 
 | File | Audience | Contenuto |
 |---|---|---|
-| `matrice.md` | Arbitro + giocatori | Tabella azioni, conflitti rilevati, pool calcolati |
+| `matrice.md` | Arbitro + giocatori | Tabella azioni, argomenti di vantaggio, conflitti rilevati |
 | `tiri.md` | Arbitro | Seed, dadi girati, esito per ogni azione |
 | `narrativa.md` | Tutti | Conseguenze narrative, delta stato, aggancio prossimo turno |
 
@@ -344,18 +335,29 @@ valutazione:
 
 ## 5. Fazioni IA
 
-Puoi marcare una fazione come controllata dall'IA aggiungendo `tipo: ia` nella scheda fazione:
+Puoi marcare una fazione come controllata dall'IA aggiungendo `tipo: ia` nella scheda fazione o in `campagna.yaml`:
 
 ```yaml
----
-id: mercenari
-nome: "Compagnia dei Mercenari"
-tipo: ia
-...
----
+- id: mercenari
+  nome: "Compagnia dei Mercenari"
+  tipo: ia
+  obiettivo: "Massimizzare i profitti nel conflitto"
+  profilo: >
+    Fanteria pesante mercenaria, altamente motivata dal guadagno economico.
+    Si schiera con chi offre di più e può cambiare alleanze a metà campagna.
+    Priva di territorio proprio, vulnerabile a blocchi economici.
+  mc: 0
+  leader:
+    presente: true
 ```
 
-Quando il turno raggiunge la Fase 1, il plugin genera automaticamente la dichiarazione di azione per questa fazione usando l'LLM, coerentemente con il suo obiettivo e gli eventi recenti. La dichiarazione appare come una normale `azione-mercenari.md` che puoi modificare prima di procedere.
+Quando usi **`BLOC: Dichiara azione`**, il plugin:
+1. Rileva le fazioni `tipo: ia` che non hanno ancora dichiarato per il turno corrente
+2. Per ognuna chiama l'LLM con il profilo fazione e la storia recente, generando `azione`, `metodo` e `argomento_vantaggio`
+3. Salva il file come una normale dichiarazione (modificabile prima di procedere)
+4. Apre il form manuale per le fazioni umane
+
+L'operazione è idempotente: se `azione-{id}.md` esiste già, quella fazione viene saltata.
 
 ---
 
@@ -367,11 +369,7 @@ Le azioni con `tipo_azione: latente` vengono salvate in `/fazioni/{slug}-latenti
 
 ### Azioni di difesa
 
-Le azioni con `tipo_azione: difesa` non richiedono obiettivo offensivo. La valutazione LLM le tratta come risposta reattiva: i vantaggi difensivi pesano di più, i conflitti vengono risolti a favore del difensore in caso di parità.
-
-### Aiuti alleati
-
-Il campo `aiuti_alleati` in `azione-{fazione}.md` accetta gli ID delle fazioni alleate che spendono un vantaggio per supportare questa azione. Ogni aiuto aggiunge +1 al pool positivo.
+Le azioni con `tipo_azione: difesa` non richiedono obiettivo offensivo. La valutazione LLM le tratta come risposta reattiva: gli argomenti difensivi vengono valutati con più attenzione al contesto, e i conflitti si risolvono a favore del difensore in caso di parità di netto.
 
 ### Fog of War
 
@@ -384,10 +382,11 @@ Gli accordi privati tra fazioni vanno in `campagna-privato.yaml` (nella stessa c
 | Comando | Stato richiesto | Descrizione |
 |---|---|---|
 | `BLOC: Nuova campagna` | sempre | Apre il wizard di creazione |
-| `BLOC: Dichiara azione` | `raccolta` | Form dichiarazione per una fazione |
+| `BLOC: Dichiara azione` | `raccolta` | Auto-gen fazioni IA + form per fazioni umane |
 | `BLOC: Genera matrice` | `raccolta` | LLM Step 1 — crea `matrice.md` |
-| `BLOC: Aggiorna svantaggi` | `matrice_generata` | Registra le contro-argomentazioni |
-| `BLOC: Valuta azioni` | `contro_args` | LLM Step 2 — calcola i pool |
+| `BLOC: Aggiorna svantaggi` | `matrice_generata` | Registra manualmente le contro-argomentazioni |
+| `BLOC: Auto contro-argomentazione` | `matrice_generata` | LLM genera le contro-argomentazioni automaticamente |
+| `BLOC: Valuta azioni` | `contro_args` | LLM Step 2 — valuta gli argomenti e calcola i pool |
 | `BLOC: Esegui tiri` | `valutazione` | Tira i dadi (deterministico) |
 | `BLOC: Genera conseguenze` | `tiri` | LLM Step 3 — crea `narrativa.md` |
 | `BLOC: Chiudi turno` | `review` | Archivia e prepara il turno successivo |
@@ -413,7 +412,7 @@ llm:
 
 ### Temperature
 
-- `temperature_mechanical` (default `0.2`) — usata per gli step di valutazione vantaggi e calcolo pool: bassa per risposte coerenti e riproducibili
+- `temperature_mechanical` (default `0.2`) — usata per gli step di valutazione argomenti e calcolo pool: bassa per risposte coerenti e riproducibili
 - `temperature_narrative` (default `0.7`) — usata per la generazione delle conseguenze: più alta per narrativa varia
 
 ### Context window e turni lunghi
@@ -426,7 +425,7 @@ Con Ollama (256K token) il plugin applica automaticamente una finestra mobile de
 
 Assicurati che Ollama sia in ascolto prima di usare i comandi. L'URL base predefinito è `http://localhost:11434` — modificabile nelle impostazioni del plugin.
 
-Modelli consigliati per structured output: `gemma3:12b`, `mistral-nemo`, `llama3.3`. Attiva l'opzione `think: true` (già abilitata nell'adapter) per modelli che lo supportano (es. Gemma 4).
+Modelli consigliati per structured output: `gemma3:12b`, `mistral-nemo`, `llama3.3`.
 
 ---
 
@@ -455,3 +454,11 @@ Sì. Il plugin carica la campagna specificata in *Impostazioni → Campagna pred
 **La chiave API è al sicuro?**
 
 La chiave viene salvata in `.obsidian/plugins/bloc-ai-referee/data.json` — un file locale sulla tua macchina, non sincronizzato nella vault. Non viene mai scritta in file Markdown o YAML. Se usi Obsidian Sync, verifica che la cartella `.obsidian/plugins/` non sia inclusa nella sincronizzazione.
+
+**Devo specificare vantaggi e svantaggi come liste?**
+
+No. Dal v0.3.0 il sistema usa argomenti liberi in linguaggio naturale. Invece di token fissi, ogni fazione ha un **profilo** (descrizione delle capacità e debolezze tipiche) e ogni dichiarazione di azione include un **argomento di vantaggio** specifico per quell'azione. L'LLM valuta la forza degli argomenti contestualmente — un argomento ottimo vale fino a 3 dadi positivi, uno debole 0.
+
+**Qual è la differenza tra "Aggiorna svantaggi" e "Auto contro-argomentazione"?**
+
+`BLOC: Aggiorna svantaggi` apre un form dove l'arbitro inserisce manualmente gli argomenti contrari raccolti dai giocatori — ideale per campagne multiplayer con discussione asincrona tra turni. `BLOC: Auto contro-argomentazione` chiede all'LLM di generarli autonomamente basandosi sul profilo delle fazioni e sulla matrice — ideale per campagne solitarie o per accelerare il flusso.

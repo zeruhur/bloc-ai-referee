@@ -8,13 +8,15 @@ Il plugin implementa una pipeline LLM a step separati per valutare le dichiarazi
 
 ## Caratteristiche principali
 
-- **Pipeline LLM a 3 step** — matrice azioni → valutazione vantaggi/pool → conseguenze narrative
+- **Pipeline LLM a 3 step** — matrice azioni → valutazione argomenti/pool → conseguenze narrative
+- **Argomenti liberi** — vantaggi e svantaggi sono testo libero contestuale all'azione, non token fissi
 - **Dadi deterministici** — PRNG Mulberry32 con seed registrato; nessun tiro delegato all'LLM
 - **5 provider LLM** — Google AI Studio (Gemini), Anthropic (Claude), OpenAI, OpenRouter, Ollama (locale)
 - **Vault-first** — tutto lo stato di gioco vive in file Markdown/YAML nella vault; nessun database esterno
 - **Doppio layer di output** — YAML machine-readable per il contesto LLM + Markdown leggibile per i giocatori
 - **Chiavi API sicure** — salvate nei dati del plugin, mai nei file della vault
-- **Fazioni IA** — il plugin può auto-generare la dichiarazione di azione per fazioni non controllate da giocatori
+- **Fazioni IA** — auto-genera la dichiarazione di azione per fazioni non controllate da giocatori
+- **Contro-argomentazione automatizzata** — l'LLM può generare le contro-argomentazioni al posto dei giocatori
 - **Modalità asincrona** — i giocatori possono dichiarare in momenti diversi; la modalità sincrona è un sottoinsieme dello stesso flusso
 
 ---
@@ -51,17 +53,18 @@ Per la guida completa vedi [GUIDA_UTENTE.md](docs/GUIDA_UTENTE.md).
 
 ## Comandi disponibili
 
-| Comando | Funzione |
-|---|---|
-| `BLOC: Nuova campagna` | Wizard di creazione campagna |
-| `BLOC: Dichiara azione` | Apre il form di dichiarazione azione per una fazione |
-| `BLOC: Genera matrice` | LLM Step 1 — genera la matrice delle azioni del turno |
-| `BLOC: Aggiorna svantaggi` | Registra le contro-argomentazioni dei giocatori |
-| `BLOC: Valuta azioni` | LLM Step 2 — valuta vantaggi/svantaggi e calcola i pool di dadi |
-| `BLOC: Esegui tiri` | Tira i dadi deterministicamente e registra i risultati |
-| `BLOC: Genera conseguenze` | LLM Step 3 — genera la narrativa e aggiorna lo stato di campagna |
-| `BLOC: Chiudi turno` | Archivia il turno corrente e prepara quello successivo |
-| `BLOC: Stato campagna` | Mostra il riepilogo dello stato attuale |
+| Comando | Stato | Funzione |
+|---|---|---|
+| `BLOC: Nuova campagna` | sempre | Wizard di creazione campagna |
+| `BLOC: Dichiara azione` | `raccolta` | Form dichiarazione + auto-gen fazioni IA |
+| `BLOC: Genera matrice` | `raccolta` | LLM Step 1 — genera la matrice delle azioni del turno |
+| `BLOC: Aggiorna svantaggi` | `matrice_generata` | Registra manualmente le contro-argomentazioni |
+| `BLOC: Auto contro-argomentazione` | `matrice_generata` | LLM genera automaticamente le contro-argomentazioni |
+| `BLOC: Valuta azioni` | `contro_args` | LLM Step 2 — valuta gli argomenti e calcola i pool di dadi |
+| `BLOC: Esegui tiri` | `valutazione` | Tira i dadi deterministicamente e registra i risultati |
+| `BLOC: Genera conseguenze` | `tiri` | LLM Step 3 — genera la narrativa e aggiorna lo stato di campagna |
+| `BLOC: Chiudi turno` | `review` | Archivia il turno corrente e prepara quello successivo |
+| `BLOC: Stato campagna` | sempre | Mostra il riepilogo dello stato attuale |
 
 ---
 
@@ -70,11 +73,11 @@ Per la guida completa vedi [GUIDA_UTENTE.md](docs/GUIDA_UTENTE.md).
 ```
 /campagne/
   /{slug-campagna}/
-    campagna.yaml          ← stato globale + config LLM
+    campagna.yaml          ← stato globale + config LLM + profili fazioni
     /fazioni/
-      {slug}.md            ← scheda fazione (vantaggi, svantaggio, obiettivo)
+      {slug}.md            ← scheda fazione (profilo, obiettivo)
     /turno-01/
-      azione-{fazione}.md  ← dichiarazione azione (una per fazione)
+      azione-{fazione}.md  ← dichiarazione azione con argomento di vantaggio
       matrice.md           ← output LLM Step 1
       tiri.md              ← log deterministico dei dadi
       narrativa.md         ← output LLM Step 3 (per i giocatori)
