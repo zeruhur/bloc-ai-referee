@@ -1,3 +1,4 @@
+import { requestUrl } from 'obsidian';
 import type { BlocPluginSettings, LLMProvider } from '../types';
 
 export interface FetchModelsOptions {
@@ -17,48 +18,53 @@ export async function fetchModels(opts: FetchModelsOptions): Promise<string[]> {
 }
 
 async function fetchGeminiModels(apiKey: string): Promise<string[]> {
-  if (!apiKey) throw new Error('API key richiesta per Google AI Studio');
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}&pageSize=100`,
-  );
-  if (!res.ok) throw new Error(`Gemini models API: ${res.status}`);
-  const data = await res.json();
-  return (data.models as any[])
-    .map((m: any) => m.name.replace('models/', ''))
-    .filter((name: string) => name.startsWith('gemini'));
+  if (!apiKey) throw new Error('Chiave API mancante per Google AI Studio. Aggiungila nelle impostazioni.');
+  const res = await requestUrl({
+    url: `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}&pageSize=100`,
+    method: 'GET',
+    throw: false,
+  });
+  if (res.status !== 200) throw new Error(`Gemini models API: ${res.status} — chiave non valida?`);
+  return (res.json.models as any[])
+    .map((m: any) => (m.name as string).replace('models/', ''))
+    .filter((name: string) => name.startsWith('gemini'))
+    .sort();
 }
 
 async function fetchOllamaModels(baseUrl: string): Promise<string[]> {
-  const res = await fetch(`${baseUrl}/api/tags`);
-  if (!res.ok) throw new Error(`Ollama tags API: ${res.status}`);
-  const data = await res.json();
-  return (data.models as any[]).map((m: any) => m.name);
+  const res = await requestUrl({ url: `${baseUrl}/api/tags`, method: 'GET', throw: false });
+  if (res.status !== 200) throw new Error(`Ollama non raggiungibile su ${baseUrl} (${res.status})`);
+  return (res.json.models as any[]).map((m: any) => m.name as string).sort();
 }
 
 async function fetchOpenAIModels(baseUrl: string, apiKey: string): Promise<string[]> {
-  if (!apiKey) throw new Error('API key richiesta per OpenAI');
-  const res = await fetch(`${baseUrl}/models`, {
+  if (!apiKey) throw new Error('Chiave API mancante per OpenAI. Aggiungila nelle impostazioni.');
+  const res = await requestUrl({
+    url: `${baseUrl}/models`,
+    method: 'GET',
     headers: { Authorization: `Bearer ${apiKey}` },
+    throw: false,
   });
-  if (!res.ok) throw new Error(`OpenAI models API: ${res.status}`);
-  const data = await res.json();
-  return (data.data as any[])
-    .map((m: any) => m.id)
+  if (res.status !== 200) throw new Error(`OpenAI models API: ${res.status} — chiave non valida?`);
+  return (res.json.data as any[])
+    .map((m: any) => m.id as string)
     .filter((id: string) => id.startsWith('gpt') || id.startsWith('o'))
     .sort();
 }
 
 async function fetchAnthropicModels(apiKey: string): Promise<string[]> {
-  if (!apiKey) throw new Error('API key richiesta per Anthropic');
-  const res = await fetch('https://api.anthropic.com/v1/models', {
+  if (!apiKey) throw new Error('Chiave API mancante per Anthropic. Aggiungila nelle impostazioni.');
+  const res = await requestUrl({
+    url: 'https://api.anthropic.com/v1/models',
+    method: 'GET',
     headers: {
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
     },
+    throw: false,
   });
-  if (!res.ok) throw new Error(`Anthropic models API: ${res.status}`);
-  const data = await res.json();
-  return (data.data as any[]).map((m: any) => m.id).sort();
+  if (res.status !== 200) throw new Error(`Anthropic models API: ${res.status} — chiave non valida?`);
+  return (res.json.data as any[]).map((m: any) => m.id as string).sort();
 }
 
 async function fetchOpenRouterModels(baseUrl: string, apiKey: string): Promise<string[]> {
@@ -68,9 +74,7 @@ async function fetchOpenRouterModels(baseUrl: string, apiKey: string): Promise<s
   };
   if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
 
-  const res = await fetch(`${baseUrl}/models`, { headers });
-  if (!res.ok) throw new Error(`OpenRouter models API: ${res.status}`);
-  const data = await res.json();
-  return (data.data as any[]).map((m: any) => m.id).sort();
+  const res = await requestUrl({ url: `${baseUrl}/models`, method: 'GET', headers, throw: false });
+  if (res.status !== 200) throw new Error(`OpenRouter models API: ${res.status}`);
+  return (res.json.data as any[]).map((m: any) => m.id as string).sort();
 }
-

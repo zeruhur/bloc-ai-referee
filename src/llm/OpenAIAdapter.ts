@@ -1,3 +1,4 @@
+import { requestUrl } from 'obsidian';
 import type { LLMAdapter, LLMPrompt, LLMResponse } from '../types';
 import { LLMValidationError } from './LLMAdapter';
 
@@ -9,8 +10,6 @@ export class OpenAIAdapter implements LLMAdapter {
   ) {}
 
   async complete(prompt: LLMPrompt): Promise<LLMResponse> {
-    const url = `${this.baseUrl}/chat/completions`;
-
     const body = {
       model: this.model,
       messages: [
@@ -28,23 +27,22 @@ export class OpenAIAdapter implements LLMAdapter {
       },
     };
 
-    const response = await fetch(url, {
+    const res = await requestUrl({
+      url: `${this.baseUrl}/chat/completions`,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify(body),
+      throw: false,
     });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`OpenAI API error ${response.status}: ${errText}`);
+    if (res.status !== 200) {
+      throw new Error(`OpenAI API error ${res.status}: ${res.text}`);
     }
 
-    const data = await response.json();
-    const rawText: string = data?.choices?.[0]?.message?.content ?? '';
-
+    const rawText: string = res.json?.choices?.[0]?.message?.content ?? '';
     let parsed: unknown;
     try {
       parsed = JSON.parse(rawText);
@@ -56,7 +54,7 @@ export class OpenAIAdapter implements LLMAdapter {
       content: rawText,
       parsed,
       model: this.model,
-      tokens_used: data?.usage?.total_tokens,
+      tokens_used: res.json?.usage?.total_tokens,
     };
   }
 }

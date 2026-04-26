@@ -1,4 +1,5 @@
 // Minimal Obsidian mock for unit tests
+export async function requestUrl(_req: unknown): Promise<unknown> { return {}; }
 export class Plugin {}
 export class Modal {
   app: unknown;

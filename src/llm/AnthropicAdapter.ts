@@ -1,3 +1,4 @@
+import { requestUrl } from 'obsidian';
 import type { LLMAdapter, LLMPrompt, LLMResponse } from '../types';
 import { LLMValidationError } from './LLMAdapter';
 
@@ -27,7 +28,8 @@ export class AnthropicAdapter implements LLMAdapter {
       tool_choice: { type: 'tool', name: 'output' },
     };
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await requestUrl({
+      url: 'https://api.anthropic.com/v1/messages',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -35,19 +37,16 @@ export class AnthropicAdapter implements LLMAdapter {
         'anthropic-version': ANTHROPIC_VERSION,
       },
       body: JSON.stringify(body),
+      throw: false,
     });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Anthropic API error ${response.status}: ${errText}`);
+    if (res.status !== 200) {
+      throw new Error(`Anthropic API error ${res.status}: ${res.text}`);
     }
 
-    const data = await response.json();
-
-    // Tool use response: content is an array; find the tool_use block
-    const toolBlock = data?.content?.find((c: any) => c.type === 'tool_use');
+    const toolBlock = res.json?.content?.find((c: any) => c.type === 'tool_use');
     if (!toolBlock) {
-      throw new LLMValidationError('Anthropic returned no tool_use block', JSON.stringify(data));
+      throw new LLMValidationError('Anthropic returned no tool_use block', res.text);
     }
 
     const parsed: unknown = toolBlock.input;
@@ -57,7 +56,7 @@ export class AnthropicAdapter implements LLMAdapter {
       content: rawText,
       parsed,
       model: this.model,
-      tokens_used: data?.usage?.input_tokens + data?.usage?.output_tokens,
+      tokens_used: (res.json?.usage?.input_tokens ?? 0) + (res.json?.usage?.output_tokens ?? 0),
     };
   }
 }

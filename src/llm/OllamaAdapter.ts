@@ -1,3 +1,4 @@
+import { requestUrl } from 'obsidian';
 import type { LLMAdapter, LLMPrompt, LLMResponse } from '../types';
 import { LLMValidationError } from './LLMAdapter';
 
@@ -8,8 +9,6 @@ export class OllamaAdapter implements LLMAdapter {
   ) {}
 
   async complete(prompt: LLMPrompt): Promise<LLMResponse> {
-    const url = `${this.baseUrl}/api/chat`;
-
     const body = {
       model: this.model,
       messages: [
@@ -24,20 +23,19 @@ export class OllamaAdapter implements LLMAdapter {
       },
     };
 
-    const response = await fetch(url, {
+    const res = await requestUrl({
+      url: `${this.baseUrl}/api/chat`,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+      throw: false,
     });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Ollama API error ${response.status}: ${errText}`);
+    if (res.status !== 200) {
+      throw new Error(`Ollama API error ${res.status}: ${res.text}`);
     }
 
-    const data = await response.json();
-    const rawText: string = data?.message?.content ?? '';
-
+    const rawText: string = res.json?.message?.content ?? '';
     let parsed: unknown;
     try {
       parsed = JSON.parse(rawText);
@@ -45,10 +43,6 @@ export class OllamaAdapter implements LLMAdapter {
       throw new LLMValidationError('Ollama response is not valid JSON', rawText);
     }
 
-    return {
-      content: rawText,
-      parsed,
-      model: this.model,
-    };
+    return { content: rawText, parsed, model: this.model };
   }
 }

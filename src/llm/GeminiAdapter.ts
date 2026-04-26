@@ -1,3 +1,4 @@
+import { requestUrl } from 'obsidian';
 import type { LLMAdapter, LLMPrompt, LLMResponse } from '../types';
 import { LLMValidationError } from './LLMAdapter';
 
@@ -8,8 +9,6 @@ export class GeminiAdapter implements LLMAdapter {
   ) {}
 
   async complete(prompt: LLMPrompt): Promise<LLMResponse> {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
-
     const body = {
       system_instruction: { parts: [{ text: prompt.system }] },
       contents: [{ role: 'user', parts: [{ text: prompt.user }] }],
@@ -20,20 +19,19 @@ export class GeminiAdapter implements LLMAdapter {
       },
     };
 
-    const response = await fetch(url, {
+    const res = await requestUrl({
+      url: `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+      throw: false,
     });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Gemini API error ${response.status}: ${errText}`);
+    if (res.status !== 200) {
+      throw new Error(`Gemini API error ${res.status}: ${res.text}`);
     }
 
-    const data = await response.json();
-    const rawText: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-
+    const rawText: string = res.json?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
     let parsed: unknown;
     try {
       parsed = JSON.parse(rawText);
@@ -45,7 +43,7 @@ export class GeminiAdapter implements LLMAdapter {
       content: rawText,
       parsed,
       model: this.model,
-      tokens_used: data?.usageMetadata?.totalTokenCount,
+      tokens_used: res.json?.usageMetadata?.totalTokenCount,
     };
   }
 }
