@@ -6,7 +6,7 @@ import { patchCampagnaStato } from '../vault/CampaignWriter';
 import { buildCounterArgPrompt } from './prompts/counterArgPrompt';
 import { counterArgOutputSchema, CounterArgOutputZod } from './schemas/counterArgSchema';
 import { LLMValidationError } from '../llm/LLMAdapter';
-import { getCompressedDeltas } from '../utils/contextWindow';
+import { getCompressedDeltas, getHistorySummary } from '../utils/contextWindow';
 import { parseYaml } from '../utils/yaml';
 
 export async function runStepCounterArg(
@@ -27,7 +27,8 @@ export async function runStepCounterArg(
   const matrix = parseYaml<MatrixOutput>(matrixFrontmatter);
 
   const deltas = getCompressedDeltas(campagna.game_state_delta, campagna.llm.provider);
-  const { system, user } = buildCounterArgPrompt(campagna, actions, matrix, deltas);
+  const historySummary = getHistorySummary(campagna.game_state_delta, campagna.llm.provider);
+  const { system, user } = buildCounterArgPrompt(campagna, actions, matrix, deltas, historySummary);
 
   const response = await adapter.complete({
     system,

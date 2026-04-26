@@ -15,7 +15,7 @@ import { patchCampagnaStato } from '../vault/CampaignWriter';
 import { buildEvaluatePrompt } from './prompts/evaluatePrompt';
 import { evaluateOutputSchema, EvaluateOutputZod } from './schemas/evaluateSchema';
 import { LLMValidationError } from '../llm/LLMAdapter';
-import { getCompressedDeltas } from '../utils/contextWindow';
+import { getCompressedDeltas, getHistorySummary } from '../utils/contextWindow';
 import { Notice } from 'obsidian';
 
 export async function runStep2Evaluate(
@@ -39,13 +39,14 @@ export async function runStep2Evaluate(
   }
 
   const deltas = getCompressedDeltas(campagna.game_state_delta, campagna.llm.provider);
+  const historySummary = getHistorySummary(campagna.game_state_delta, campagna.llm.provider);
   const evaluations: EvaluationOutput[] = [];
 
   for (let i = 0; i < actions.length; i++) {
     const action = actions[i];
     onProgress?.(i + 1, actions.length);
 
-    const { system, user } = buildEvaluatePrompt(campagna, matrice, action, deltas);
+    const { system, user } = buildEvaluatePrompt(campagna, matrice, action, deltas, historySummary);
 
     const response = await adapter.complete({
       system,

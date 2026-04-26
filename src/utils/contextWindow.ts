@@ -19,3 +19,22 @@ export function getCompressedDeltas(
 ): GameStateDelta[] {
   return compressGameState(deltas, maxTurnsForProvider(provider));
 }
+
+/**
+ * Returns a summary string built from the narrative_seed of deltas that fall
+ * outside the context window, so the LLM retains a compressed memory of
+ * turns older than maxTurns. Returns null when no compression occurs.
+ */
+export function getHistorySummary(
+  deltas: GameStateDelta[],
+  provider: LLMProvider,
+): string | null {
+  const maxTurns = maxTurnsForProvider(provider);
+  if (deltas.length <= maxTurns) return null;
+  const dropped = deltas.slice(0, deltas.length - maxTurns);
+  const seeds = dropped
+    .map(d => d.narrative_seed)
+    .filter((s): s is string => !!s);
+  if (seeds.length === 0) return null;
+  return seeds.join(' | ');
+}

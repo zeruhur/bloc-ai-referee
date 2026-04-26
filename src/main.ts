@@ -13,6 +13,7 @@ import { cmdGeneraConseguenze } from './commands/GeneraConseguenze';
 import { cmdChiudiTurno } from './commands/ChiudiTurno';
 import { cmdStatoCampagna } from './commands/StatoCampagna';
 import { cmdAutoControArgomentazione } from './commands/AutoControArgomentazione';
+import { cmdAttivaAzioneLatente } from './commands/AttivaAzioneLatente';
 
 export default class BlocPlugin extends Plugin {
   settings: BlocPluginSettings = DEFAULT_SETTINGS;
@@ -80,6 +81,12 @@ export default class BlocPlugin extends Plugin {
       id: 'stato-campagna',
       name: 'BLOC: Stato campagna',
       callback: () => cmdStatoCampagna(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'attiva-azione-latente',
+      name: 'BLOC: Attiva azione latente',
+      callback: () => cmdAttivaAzioneLatente(this.app, this),
     });
   }
 

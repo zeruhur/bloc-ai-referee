@@ -6,10 +6,15 @@ export function buildEvaluatePrompt(
   matrice: MatrixOutput,
   action: AzioneDeclaration,
   compressedDeltas: GameStateDelta[],
+  historySummary: string | null = null,
 ): { system: string; user: string } {
-  const deltaContext = compressedDeltas.length > 0
+  const historySection = historySummary
+    ? `\n\nSTORIA PREGRESSA (riassunto):\n${historySummary}`
+    : '';
+  const recentSection = compressedDeltas.length > 0
     ? `\n\nSTORIA RECENTE:\n${stringifyYaml(compressedDeltas)}`
     : '';
+  const deltaContext = historySection + recentSection;
 
   const system = `Sei l'arbitro di "${campagna.meta.titolo}".
 

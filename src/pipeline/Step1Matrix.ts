@@ -6,7 +6,7 @@ import { patchCampagnaStato } from '../vault/CampaignWriter';
 import { buildMatrixPrompt } from './prompts/matrixPrompt';
 import { matrixOutputSchema, MatrixOutputZod } from './schemas/matrixSchema';
 import { LLMValidationError } from '../llm/LLMAdapter';
-import { getCompressedDeltas } from '../utils/contextWindow';
+import { getCompressedDeltas, getHistorySummary } from '../utils/contextWindow';
 import { markdownTable, markdownSection } from '../utils/markdown';
 import { buildFileWithFrontmatter } from '../utils/yaml';
 
@@ -31,7 +31,8 @@ export async function runStep1Matrix(
   }
 
   const deltas = getCompressedDeltas(campagna.game_state_delta, campagna.llm.provider);
-  const { system, user } = buildMatrixPrompt(campagna, actions, deltas);
+  const historySummary = getHistorySummary(campagna.game_state_delta, campagna.llm.provider);
+  const { system, user } = buildMatrixPrompt(campagna, actions, deltas, historySummary);
 
   const response = await adapter.complete({
     system,

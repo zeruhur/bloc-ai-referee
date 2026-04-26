@@ -18,7 +18,7 @@ import { patchCampagnaStato, appendGameStateDelta, patchFazioneMC } from '../vau
 import { buildNarrativePrompt } from './prompts/narrativePrompt';
 import { narrativeOutputSchema, NarrativeOutputZod } from './schemas/narrativeSchema';
 import { LLMValidationError } from '../llm/LLMAdapter';
-import { getCompressedDeltas } from '../utils/contextWindow';
+import { getCompressedDeltas, getHistorySummary } from '../utils/contextWindow';
 import { markdownSection } from '../utils/markdown';
 import { ESITO_LABELS } from '../constants';
 
@@ -51,7 +51,8 @@ export async function runStep3Narrative(
     .map(a => a.valutazione as EvaluationOutput);
 
   const deltas = getCompressedDeltas(campagna.game_state_delta, campagna.llm.provider);
-  const { system, user } = buildNarrativePrompt(campagna, matrice, rolls, evaluations, deltas);
+  const historySummary = getHistorySummary(campagna.game_state_delta, campagna.llm.provider);
+  const { system, user } = buildNarrativePrompt(campagna, matrice, rolls, evaluations, deltas, historySummary);
 
   const response = await adapter.complete({
     system,

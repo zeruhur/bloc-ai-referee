@@ -2,7 +2,7 @@ import type { App } from 'obsidian';
 import { Notice } from 'obsidian';
 import type { Campagna, FazioneConfig, LLMAdapter } from '../types';
 import { actionFilePath, fileExists, writeActionFile } from '../vault/VaultManager';
-import { getCompressedDeltas } from '../utils/contextWindow';
+import { getCompressedDeltas, getHistorySummary } from '../utils/contextWindow';
 import { buildActionDeclPrompt } from './prompts/actionDeclPrompt';
 import { actionDeclOutputSchema, ActionDeclOutputZod } from './schemas/actionDeclSchema';
 import { LLMValidationError } from '../llm/LLMAdapter';
@@ -21,7 +21,8 @@ export async function autoGenAzioneIA(
   }
 
   const deltas = getCompressedDeltas(campagna.game_state_delta, campagna.llm.provider);
-  const { system, user } = buildActionDeclPrompt(campagna, fazione, deltas);
+  const historySummary = getHistorySummary(campagna.game_state_delta, campagna.llm.provider);
+  const { system, user } = buildActionDeclPrompt(campagna, fazione, deltas, historySummary);
 
   const response = await adapter.complete({
     system,

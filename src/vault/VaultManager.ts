@@ -16,6 +16,7 @@ import {
   ROLLS_FILE,
   NARRATIVE_FILE,
 } from '../constants';
+import { saveLatentAction } from './FactionLoader';
 
 export function campaignPath(slug: string): string {
   return `${CAMPAGNE_FOLDER}/${slug}`;
@@ -59,6 +60,10 @@ export async function writeActionFile(
   turno: number,
   action: AzioneDeclaration,
 ): Promise<void> {
+  if (action.tipo_azione === 'latente') {
+    await saveLatentAction(app, slug, action.fazione, action);
+    return;
+  }
   await ensureTurnFolder(app, slug, turno);
   const path = actionFilePath(slug, turno, action.fazione);
   const { dettaglio_narrativo, ...llmFields } = action;
