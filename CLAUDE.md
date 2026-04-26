@@ -51,7 +51,8 @@ Each state maps to a command:
 - **Vault-first**: YAML frontmatter + Markdown body gives dual output (machine context + human-readable). Never store authoritative state outside vault files.
 - **Seeded PRNG only**: `DiceEngine.tiraDadi(pool, seed)` uses Mulberry32. The seed comes from the campaign file, not the LLM.
 - **Zod validation on every LLM response**: All pipeline steps validate output against schemas in `src/vault/schemas.ts` before writing to disk.
-- **Context window budgeting**: `campagna.yaml` tracks `game_state_delta` history; full providers get last 10 deltas, Ollama gets last 5 (see `src/constants.ts`).
+- **Context window budgeting**: `campagna.yaml` tracks `game_state_delta` history; full providers get last 10 deltas, Ollama gets last 5 (see `src/constants.ts`). When older deltas are dropped, `getHistorySummary()` (`src/utils/contextWindow.ts`) concatenates their `narrative_seed` strings and injects them as "STORIA PREGRESSA" in every prompt.
+- **Latent actions fog-of-war**: `tipo_azione: latente` routes to `fazioni/{slug}-latenti.yaml` (via `writeActionFile` in `VaultManager.ts`), keeping them out of `loadActionsForTurn` and all LLM prompts. Use `BLOC: Attiva azione latente` to promote a latent action into the current turn.
 
 ### LLM Provider Layer
 
@@ -72,3 +73,8 @@ Obsidian API is mocked at `tests/__mocks__/obsidian.ts` so tests run in Node wit
 ### Release
 
 GitHub Actions (`.github/workflows/release.yml`) triggers on `v*.*.*` tags, builds, and publishes `main.js` + `manifest.json` as a GitHub Release for BRAT installation.
+
+### Vault Layout — additional files
+
+- `oracolo.md` — per-campaign oracle log, appended by `BLOC: Interroga oracolo`
+- `campagna-privato.yaml` — fog-of-war data (secret agreements, private notes); managed by `src/vault/CampagnaPrivataManager.ts`; never loaded by `CampaignLoader` or sent to the LLM

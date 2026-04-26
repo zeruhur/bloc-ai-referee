@@ -1,3 +1,35 @@
+// ---- IA procedural tables ----
+
+export type TipoAzioneIA =
+  | 'Consolidamento' | 'Espansione' | 'Attacco Diretto'
+  | 'Difesa' | 'Diplomatico/Politico' | 'Evento Speciale';
+export type ReactionResult = 'ostile' | 'neutrale' | 'collaborativa';
+export type IAConflictOutcome = 'vittoria_totale' | 'vittoria_parziale' | 'stallo';
+
+// ---- Oracle ----
+
+export type OracleEsito = 'no' | 'si_ma' | 'si';
+export interface OracleResult {
+  domanda: string;
+  modificatore: -1 | 0 | 1;
+  seed: number;
+  dado: number;
+  valore_modificato: number;
+  esito: OracleEsito;
+  turno: number;
+}
+
+// ---- Fog of war: private agreements ----
+
+export interface AccordoPrivato {
+  fazioni: string[];
+  termini: string;
+  turno_scadenza?: number;
+}
+export interface CampagnaPrivata {
+  accordi: AccordoPrivato[];
+}
+
 // ---- State machine ----
 
 export type CampagnaStato =
@@ -26,7 +58,7 @@ export interface FazioneConfig {
   obiettivo: string;
   /** Free-form description of the faction's capabilities, strengths and weaknesses. */
   profilo: string;
-  leader: { presente: boolean };
+  leader?: { nome?: string; presente: boolean };
 }
 
 export interface LLMConfig {
@@ -77,6 +109,7 @@ export interface AzioneDeclaration {
   /** Counter-arguments from opponent factions — filled at Checkpoint 1. */
   argomenti_contro: ArgomentoContro[];
   dettaglio_narrativo?: string;
+  azione_extra?: boolean;
   valutazione?: EvaluationOutput;
 }
 

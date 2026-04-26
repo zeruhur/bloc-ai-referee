@@ -36,7 +36,7 @@ export class StatusModal extends Modal {
       div.createEl('strong', { text: f.nome });
       div.createEl('span', { text: ` — MC: ${f.mc > 0 ? '+' : ''}${f.mc}` });
       div.createEl('span', {
-        text: ` | Leader: ${f.leader.presente ? 'presente' : 'assente'}`,
+        text: ` | Leader: ${f.leader?.presente ? 'presente' : 'assente'}`,
       });
     }
   }

@@ -1,4 +1,4 @@
-import type { Campagna, FazioneConfig, GameStateDelta } from '../../types';
+import type { Campagna, FazioneConfig, GameStateDelta, TipoAzioneIA } from '../../types';
 import { stringifyYaml } from '../../utils/yaml';
 
 export function buildActionDeclPrompt(
@@ -6,6 +6,7 @@ export function buildActionDeclPrompt(
   fazione: FazioneConfig,
   compressedDeltas: GameStateDelta[],
   historySummary: string | null = null,
+  tipoAzioneSuggerito?: TipoAzioneIA,
 ): { system: string; user: string } {
   const historySection = historySummary
     ? `\n\nSTORIA PREGRESSA (riassunto):\n${historySummary}`
@@ -22,11 +23,15 @@ ${campagna.premessa}${deltaContext}
 
 Il tuo compito è generare la dichiarazione di azione per una fazione controllata dall'IA, coerente con il suo obiettivo, profilo e gli eventi recenti. Rispondi SOLO con il JSON richiesto.`;
 
+  const tipoSection = tipoAzioneSuggerito
+    ? `\nTipo di azione: ${tipoAzioneSuggerito} — orienta l'azione verso questa categoria tematica.`
+    : '';
+
   const user = `FAZIONE: ${fazione.nome} (ID: ${fazione.id})
 OBIETTIVO: ${fazione.obiettivo}
 PROFILO: ${fazione.profilo}
 
-Genera la dichiarazione di azione per questa fazione al turno ${campagna.meta.turno_corrente}.
+Genera la dichiarazione di azione per questa fazione al turno ${campagna.meta.turno_corrente}.${tipoSection}
 - "azione": descrizione sintetica dell'azione (max 80 caratteri)
 - "metodo": come la fazione intende realizzarla (max 200 caratteri)
 - "argomento_vantaggio": argomento in linguaggio naturale che motiva perché questa fazione ha le capacità e le condizioni per riuscire in questa azione specifica (sii specifico al contesto dell'azione, non generare un elenco di caratteristiche)`;

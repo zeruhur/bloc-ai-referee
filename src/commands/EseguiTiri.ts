@@ -3,7 +3,7 @@ import { Notice } from 'obsidian';
 import type BlocPlugin from '../main';
 import { loadActiveCampagna } from './shared';
 import { loadActionsForTurn } from '../vault/ActionLoader';
-import { tiraDadi, resolveDirectConflict } from '../dice/DiceEngine';
+import { tiraDadi, resolveDirectConflict, rollIAConflictOutcome, mappaEsito } from '../dice/DiceEngine';
 import { detectDirectConflicts } from '../pipeline/Step2Evaluate';
 import { appendToRollsFile, matrixFilePath, rollsFilePath } from '../vault/VaultManager';
 import { parseFrontmatter } from '../utils/yaml';
@@ -43,22 +43,48 @@ export async function cmdEseguiTiri(app: App, plugin: BlocPlugin): Promise<void>
 
     if (!actionA?.valutazione || !actionB?.valutazione) continue;
 
-    const result = resolveDirectConflict(
-      actionA.valutazione.pool,
-      actionB.valutazione.pool,
-      conflict.fazione_a,
-      conflict.fazione_b,
-      seed,
-    );
+    const fazioneA = campagna.fazioni.find(f => f.id === conflict.fazione_a);
+    const fazioneB = campagna.fazioni.find(f => f.id === conflict.fazione_b);
+    const isIAvsIA = fazioneA?.tipo === 'ia' && fazioneB?.tipo === 'ia';
 
-    rolls.push({ ...result.attacker });
-    rolls.push({ ...result.defender });
+    if (isIAvsIA) {
+      const outcome = rollIAConflictOutcome(seed + rolls.length);
+      let attackerRisultato: number;
+      let defenderRisultato: number;
+      if (outcome.risultato === 'vittoria_totale') {
+        attackerRisultato = 6; defenderRisultato = 1;
+      } else if (outcome.risultato === 'vittoria_parziale') {
+        attackerRisultato = 4; defenderRisultato = 3;
+      } else {
+        attackerRisultato = 3; defenderRisultato = 3;
+      }
+      const attackerResult: RollResult = { fazione: conflict.fazione_a, seed: outcome.seed, dadi: [attackerRisultato], risultato: attackerRisultato, esito: mappaEsito(attackerRisultato) };
+      const defenderResult: RollResult = { fazione: conflict.fazione_b, seed: outcome.seed, dadi: [defenderRisultato], risultato: defenderRisultato, esito: mappaEsito(defenderRisultato) };
+      rolls.push(attackerResult);
+      rolls.push(defenderResult);
 
-    logContent += `## Conflitto diretto: ${conflict.fazione_a} vs ${conflict.fazione_b}\n`;
-    logContent += `- Seed: ${seed}\n`;
-    logContent += `- ${conflict.fazione_a}: dadi ${result.attacker.dadi.join(', ')} → ${result.attacker.risultato} (${ESITO_LABELS[result.attacker.esito]})\n`;
-    logContent += `- ${conflict.fazione_b}: dadi ${result.defender.dadi.join(', ')} → ${result.defender.risultato} (${ESITO_LABELS[result.defender.esito]})\n`;
-    logContent += `- Vincitore: ${result.winner === 'draw' ? 'pareggio' : result.winner === 'attacker' ? conflict.fazione_a : conflict.fazione_b}\n\n`;
+      logContent += `## Conflitto IA-vs-IA: ${conflict.fazione_a} vs ${conflict.fazione_b}\n`;
+      logContent += `- Seed: ${outcome.seed} | Dado: ${outcome.dado} | Esito tabella: ${outcome.risultato}\n`;
+      logContent += `- ${conflict.fazione_a}: ${attackerRisultato} (${ESITO_LABELS[attackerResult.esito]})\n`;
+      logContent += `- ${conflict.fazione_b}: ${defenderRisultato} (${ESITO_LABELS[defenderResult.esito]})\n\n`;
+    } else {
+      const result = resolveDirectConflict(
+        actionA.valutazione.pool,
+        actionB.valutazione.pool,
+        conflict.fazione_a,
+        conflict.fazione_b,
+        seed,
+      );
+
+      rolls.push({ ...result.attacker });
+      rolls.push({ ...result.defender });
+
+      logContent += `## Conflitto diretto: ${conflict.fazione_a} vs ${conflict.fazione_b}\n`;
+      logContent += `- Seed: ${seed}\n`;
+      logContent += `- ${conflict.fazione_a}: dadi ${result.attacker.dadi.join(', ')} → ${result.attacker.risultato} (${ESITO_LABELS[result.attacker.esito]})\n`;
+      logContent += `- ${conflict.fazione_b}: dadi ${result.defender.dadi.join(', ')} → ${result.defender.risultato} (${ESITO_LABELS[result.defender.esito]})\n`;
+      logContent += `- Vincitore: ${result.winner === 'draw' ? 'pareggio' : result.winner === 'attacker' ? conflict.fazione_a : conflict.fazione_b}\n\n`;
+    }
   }
 
   // Individual rolls for non-conflict actions

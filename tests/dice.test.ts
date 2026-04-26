@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { tiraDadi, mappaEsito, leaderAvailability, resolveDirectConflict } from '../src/dice/DiceEngine';
+import { tiraDadi, mappaEsito, leaderAvailability, resolveDirectConflict, rollTipoAzioneIA, rollReactionTable, rollIAConflictOutcome } from '../src/dice/DiceEngine';
 import type { DicePool } from '../src/types';
 
 const neutroPool: DicePool = { positivi: 1, negativi: 1, netto: 0, modalita: 'neutro' };
@@ -93,6 +93,57 @@ describe('leaderAvailability', () => {
       if (leaderAvailability(-1, s)) available++;
     }
     expect(available).toBeLessThan(70);
+  });
+});
+
+describe('tabelle IA', () => {
+  it('rollTipoAzioneIA is deterministic for fixed seed', () => {
+    const r1 = rollTipoAzioneIA(42);
+    const r2 = rollTipoAzioneIA(42);
+    expect(r1.tipo).toBe(r2.tipo);
+    expect(r1.dado).toBe(r2.dado);
+  });
+
+  it('rollTipoAzioneIA covers all 6 types across seeds 1-100', () => {
+    const tipos = new Set<string>();
+    for (let s = 1; s <= 100; s++) tipos.add(rollTipoAzioneIA(s).tipo);
+    expect(tipos.size).toBe(6);
+  });
+
+  it('rollTipoAzioneIA dado is always in [1,6]', () => {
+    for (let s = 0; s < 100; s++) {
+      const { dado } = rollTipoAzioneIA(s);
+      expect(dado).toBeGreaterThanOrEqual(1);
+      expect(dado).toBeLessThanOrEqual(6);
+    }
+  });
+
+  it('rollReactionTable is deterministic for fixed seed', () => {
+    const r1 = rollReactionTable(99);
+    const r2 = rollReactionTable(99);
+    expect(r1.risultato).toBe(r2.risultato);
+  });
+
+  it('rollReactionTable covers all outcomes across seeds 1-100', () => {
+    const outcomes = new Set<string>();
+    for (let s = 1; s <= 100; s++) outcomes.add(rollReactionTable(s).risultato);
+    expect(outcomes).toContain('ostile');
+    expect(outcomes).toContain('neutrale');
+    expect(outcomes).toContain('collaborativa');
+  });
+
+  it('rollIAConflictOutcome is deterministic for fixed seed', () => {
+    const r1 = rollIAConflictOutcome(7);
+    const r2 = rollIAConflictOutcome(7);
+    expect(r1.risultato).toBe(r2.risultato);
+  });
+
+  it('rollIAConflictOutcome covers all outcomes across seeds 1-100', () => {
+    const outcomes = new Set<string>();
+    for (let s = 1; s <= 100; s++) outcomes.add(rollIAConflictOutcome(s).risultato);
+    expect(outcomes).toContain('vittoria_totale');
+    expect(outcomes).toContain('vittoria_parziale');
+    expect(outcomes).toContain('stallo');
   });
 });
 

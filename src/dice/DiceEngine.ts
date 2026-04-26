@@ -1,4 +1,4 @@
-import type { DicePool, DiceResult, Esito, MC, Modalita, RollResult } from '../types';
+import type { DicePool, DiceResult, Esito, IAConflictOutcome, MC, Modalita, ReactionResult, RollResult, TipoAzioneIA } from '../types';
 import { ESITO_MAP, LEADER_AVAILABILITY_THRESHOLD } from '../constants';
 
 // Mulberry32 seeded PRNG — deterministic, no external deps
@@ -47,6 +47,30 @@ export function leaderAvailability(mc: MC, seed?: number): boolean {
   const usedSeed = seed ?? Date.now();
   const roll = rollDie(usedSeed);
   return roll + mc >= LEADER_AVAILABILITY_THRESHOLD;
+}
+
+const TIPO_AZIONE_IA_TABLE: TipoAzioneIA[] = [
+  'Consolidamento', 'Espansione', 'Attacco Diretto', 'Difesa', 'Diplomatico/Politico', 'Evento Speciale',
+];
+
+export function rollTipoAzioneIA(seed?: number): { seed: number; dado: number; tipo: TipoAzioneIA } {
+  const usedSeed = seed ?? Date.now();
+  const dado = rollDie(usedSeed);
+  return { seed: usedSeed, dado, tipo: TIPO_AZIONE_IA_TABLE[dado - 1] };
+}
+
+export function rollReactionTable(seed?: number): { seed: number; dado: number; risultato: ReactionResult } {
+  const usedSeed = seed ?? Date.now();
+  const dado = rollDie(usedSeed);
+  const risultato: ReactionResult = dado <= 2 ? 'ostile' : dado <= 4 ? 'neutrale' : 'collaborativa';
+  return { seed: usedSeed, dado, risultato };
+}
+
+export function rollIAConflictOutcome(seed?: number): { seed: number; dado: number; risultato: IAConflictOutcome } {
+  const usedSeed = seed ?? Date.now();
+  const dado = rollDie(usedSeed);
+  const risultato: IAConflictOutcome = dado <= 2 ? 'vittoria_totale' : dado <= 4 ? 'vittoria_parziale' : 'stallo';
+  return { seed: usedSeed, dado, risultato };
 }
 
 export interface DirectConflictResult {

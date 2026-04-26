@@ -7,7 +7,7 @@ const FazioneConfigSchema = z.object({
   tipo: z.enum(['normale', 'ia']).optional(),
   obiettivo: z.string(),
   profilo: z.string(),
-  leader: z.object({ presente: z.boolean() }),
+  leader: z.object({ nome: z.string().optional(), presente: z.boolean() }).optional(),
 });
 
 const LLMConfigSchema = z.object({
@@ -67,6 +67,7 @@ export const AzioneDeclarationSchema = z.object({
   argomento_vantaggio: z.string(),
   argomenti_contro: z.array(ArgomentoControSchema),
   dettaglio_narrativo: z.string().optional(),
+  azione_extra: z.boolean().optional(),
   valutazione: z
     .object({
       fazione: z.string(),

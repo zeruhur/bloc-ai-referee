@@ -25,6 +25,7 @@ interface WizardState {
     nome: string;
     obiettivo: string;
     profilo: string;
+    nomeLeader?: string;
   }>;
 }
 
@@ -178,6 +179,14 @@ export class NuovaCampagnaModal extends Modal {
           .setValue(f.profilo)
           .onChange(v => { f.profilo = v; }));
 
+      new Setting(box)
+        .setName('Nome leader (opzionale)')
+        .setDesc('Se assente, la fazione non avrà meccanica leader.')
+        .addText(t => t
+          .setPlaceholder('es. Generale Rossi')
+          .setValue(f.nomeLeader ?? '')
+          .onChange(v => { f.nomeLeader = v.trim() || undefined; }));
+
       const removeBtn = box.createEl('button', { text: 'Rimuovi fazione', cls: 'mod-warning' });
       removeBtn.addEventListener('click', () => {
         this.state.fazioni.splice(fi, 1);
@@ -249,7 +258,7 @@ export class NuovaCampagnaModal extends Modal {
           mc: 0,
           obiettivo: f.obiettivo,
           profilo: f.profilo,
-          leader: { presente: true },
+          leader: f.nomeLeader ? { nome: f.nomeLeader, presente: true } : undefined,
         })) as FazioneConfig[],
         game_state_delta: [],
       };

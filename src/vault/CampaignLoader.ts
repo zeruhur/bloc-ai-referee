@@ -7,6 +7,8 @@ import {
   CAMPAGNA_FILE,
 } from '../constants';
 
+// NOTE: campagna-privato.yaml is intentionally excluded and must never be loaded here.
+// It contains fog-of-war data (secret agreements, hidden notes) that must never reach the LLM.
 export async function loadCampagna(app: App, slug: string): Promise<Campagna> {
   const path = `${CAMPAGNE_FOLDER}/${slug}/${CAMPAGNA_FILE}`;
   const content = await app.vault.adapter.read(path);

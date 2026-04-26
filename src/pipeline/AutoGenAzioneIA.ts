@@ -6,6 +6,8 @@ import { getCompressedDeltas, getHistorySummary } from '../utils/contextWindow';
 import { buildActionDeclPrompt } from './prompts/actionDeclPrompt';
 import { actionDeclOutputSchema, ActionDeclOutputZod } from './schemas/actionDeclSchema';
 import { LLMValidationError } from '../llm/LLMAdapter';
+import { leaderAvailability, rollTipoAzioneIA } from '../dice/DiceEngine';
+import { patchFazioneLeader } from '../vault/CampaignWriter';
 
 export async function autoGenAzioneIA(
   app: App,
@@ -20,9 +22,19 @@ export async function autoGenAzioneIA(
     return; // already declared — idempotent
   }
 
+  const tipoRoll = rollTipoAzioneIA(Date.now() + campagna.fazioni.indexOf(fazione));
+
+  let leaderAvail = false;
+  if (fazione.leader) {
+    leaderAvail = leaderAvailability(fazione.mc, Date.now() + campagna.fazioni.indexOf(fazione) + 1000);
+    if (!leaderAvail) {
+      await patchFazioneLeader(app, slug, fazione.id, false);
+    }
+  }
+
   const deltas = getCompressedDeltas(campagna.game_state_delta, campagna.llm.provider);
   const historySummary = getHistorySummary(campagna.game_state_delta, campagna.llm.provider);
-  const { system, user } = buildActionDeclPrompt(campagna, fazione, deltas, historySummary);
+  const { system, user } = buildActionDeclPrompt(campagna, fazione, deltas, historySummary, tipoRoll.tipo);
 
   const response = await adapter.complete({
     system,
@@ -50,6 +62,7 @@ export async function autoGenAzioneIA(
     metodo,
     argomento_vantaggio,
     argomenti_contro: [],
+    azione_extra: fazione.leader ? leaderAvail : undefined,
   });
 
   new Notice(`Azione IA generata per ${fazione.nome}.`);

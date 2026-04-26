@@ -14,6 +14,10 @@ import { cmdChiudiTurno } from './commands/ChiudiTurno';
 import { cmdStatoCampagna } from './commands/StatoCampagna';
 import { cmdAutoControArgomentazione } from './commands/AutoControArgomentazione';
 import { cmdAttivaAzioneLatente } from './commands/AttivaAzioneLatente';
+import { cmdInterrogaOracolo } from './commands/InterrogaOracolo';
+import { cmdVerificaLeader } from './commands/VerificaLeader';
+import { cmdEliminaLeader } from './commands/EliminaLeader';
+import { cmdRegistraAccordoPrivato } from './commands/RegistraAccordoPrivato';
 
 export default class BlocPlugin extends Plugin {
   settings: BlocPluginSettings = DEFAULT_SETTINGS;
@@ -87,6 +91,30 @@ export default class BlocPlugin extends Plugin {
       id: 'attiva-azione-latente',
       name: 'BLOC: Attiva azione latente',
       callback: () => cmdAttivaAzioneLatente(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'interroga-oracolo',
+      name: 'BLOC: Interroga oracolo',
+      callback: () => cmdInterrogaOracolo(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'verifica-leader',
+      name: 'BLOC: Verifica disponibilità leader',
+      callback: () => cmdVerificaLeader(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'elimina-leader',
+      name: 'BLOC: Elimina leader fazione',
+      callback: () => cmdEliminaLeader(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'registra-accordo-privato',
+      name: 'BLOC: Registra accordo privato',
+      callback: () => cmdRegistraAccordoPrivato(this.app, this),
     });
   }
 
