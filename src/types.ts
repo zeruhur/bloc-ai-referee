@@ -42,7 +42,7 @@ export interface FazioneConfig {
 export interface LLMConfig {
   provider: LLMProvider;
   model: string;
-  api_key_env: string;
+  api_key_env?: string;
   temperature_mechanical: number;
   temperature_narrative: number;
 }
@@ -189,6 +189,6 @@ export interface BlocPluginSettings {
   openAIBaseUrl: string;
   openRouterBaseUrl: string;
   defaultCampaignSlug: string;
-  modelApiKeyEnvVar: string;
+  apiKeys: Partial<Record<LLMProvider, string>>;
   cachedModels: Partial<Record<LLMProvider, string[]>>;
 }

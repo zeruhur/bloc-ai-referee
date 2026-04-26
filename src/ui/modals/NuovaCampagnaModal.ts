@@ -1,7 +1,17 @@
 import { App, Modal, Notice, Setting } from 'obsidian';
 import type { Campagna, FazioneConfig, LLMProvider, VantaggioToken } from '../../types';
+import { PROVIDER_LABELS } from '../../constants';
 import { writeCampaignFile, writeFactionFile } from '../../vault/VaultManager';
 import { slugify } from '../../utils/slugify';
+import type BlocPlugin from '../../main';
+
+const PROVIDER_ORDER: LLMProvider[] = [
+  'google_ai_studio',
+  'anthropic',
+  'openai',
+  'openrouter',
+  'ollama',
+];
 
 interface WizardState {
   titolo: string;
@@ -10,7 +20,6 @@ interface WizardState {
   premessa: string;
   provider: LLMProvider;
   model: string;
-  api_key_env: string;
   fazioni: Array<{
     id: string;
     nome: string;
@@ -22,22 +31,26 @@ interface WizardState {
 
 export class NuovaCampagnaModal extends Modal {
   private step = 0;
-  private state: WizardState = {
-    titolo: '',
-    slug: '',
-    turno_totale: 10,
-    premessa: '',
-    provider: 'google_ai_studio',
-    model: 'gemini-2.5-flash',
-    api_key_env: 'GEMINI_API_KEY',
-    fazioni: [],
-  };
+  private state: WizardState;
 
   constructor(
     app: App,
+    private plugin: BlocPlugin,
     private onComplete: () => void,
   ) {
     super(app);
+    const s = plugin.settings;
+    const provider = s.defaultProvider;
+    const model = s.cachedModels?.[provider]?.[0] ?? '';
+    this.state = {
+      titolo: '',
+      slug: '',
+      turno_totale: 10,
+      premessa: '',
+      provider,
+      model,
+      fazioni: [],
+    };
   }
 
   onOpen(): void {
@@ -68,7 +81,7 @@ export class NuovaCampagnaModal extends Modal {
       }));
 
     new Setting(contentEl)
-      .setName('Slug (auto-generato)')
+      .setName('Slug (auto-generato, modificabile)')
       .addText(t => t.setValue(this.state.slug).onChange(v => { this.state.slug = v; }));
 
     new Setting(contentEl)
@@ -79,32 +92,68 @@ export class NuovaCampagnaModal extends Modal {
 
     new Setting(contentEl)
       .setName('Premessa (max 500 car.)')
-      .addTextArea(t => t.setValue(this.state.premessa).onChange(v => { this.state.premessa = v.slice(0, 500); }));
+      .setDesc('Contesto dello scenario — usato come system prompt in ogni chiamata LLM.')
+      .addTextArea(t => t
+        .setValue(this.state.premessa)
+        .onChange(v => { this.state.premessa = v.slice(0, 500); }));
 
     this.renderNavButtons(false, true);
   }
 
   private renderStepLLM(): void {
     const { contentEl } = this;
-    contentEl.createEl('h2', { text: 'Nuova campagna — Passo 2/3: LLM' });
+    contentEl.createEl('h2', { text: 'Nuova campagna — Passo 2/3: Modello AI' });
 
+    // Provider dropdown
     new Setting(contentEl)
       .setName('Provider')
-      .addDropdown(d => d
-        .addOption('google_ai_studio', 'Google AI Studio (Gemini)')
-        .addOption('ollama', 'Ollama (locale)')
-        .addOption('openai', 'OpenAI / compatibile')
-        .setValue(this.state.provider)
-        .onChange(v => { this.state.provider = v as LLMProvider; }));
+      .addDropdown(d => {
+        for (const p of PROVIDER_ORDER) {
+          d.addOption(p, PROVIDER_LABELS[p]);
+        }
+        d.setValue(this.state.provider).onChange(v => {
+          this.state.provider = v as LLMProvider;
+          const cached = this.plugin.settings.cachedModels?.[this.state.provider]?.[0] ?? '';
+          this.state.model = cached;
+          this.renderStep();
+        });
+      });
 
-    new Setting(contentEl)
-      .setName('Modello')
-      .addText(t => t.setValue(this.state.model).onChange(v => { this.state.model = v; }));
+    // Model dropdown from cached list
+    const models = this.plugin.settings.cachedModels?.[this.state.provider] ?? [];
 
-    new Setting(contentEl)
-      .setName('Variabile d\'ambiente API key')
-      .setDesc('Il nome della variabile, non la chiave stessa')
-      .addText(t => t.setValue(this.state.api_key_env).onChange(v => { this.state.api_key_env = v; }));
+    if (models.length > 0) {
+      new Setting(contentEl)
+        .setName('Modello')
+        .addDropdown(d => {
+          for (const m of models) d.addOption(m, m);
+          d.setValue(this.state.model || models[0]).onChange(v => { this.state.model = v; });
+          this.state.model = this.state.model || models[0];
+        });
+    } else {
+      new Setting(contentEl)
+        .setName('Modello')
+        .setDesc('Nessun modello in cache. Inserisci il nome manualmente, oppure vai nelle Impostazioni del plugin e clicca "Aggiorna lista".')
+        .addText(t => t
+          .setPlaceholder('es. gemini-2.5-flash')
+          .setValue(this.state.model)
+          .onChange(v => { this.state.model = v.trim(); }));
+    }
+
+    // Key status hint
+    const hasKey = !!(this.plugin.settings.apiKeys?.[this.state.provider]);
+    const isOllama = this.state.provider === 'ollama';
+    if (!hasKey && !isOllama) {
+      contentEl.createEl('p', {
+        text: `⚠ Nessuna chiave API configurata per ${PROVIDER_LABELS[this.state.provider]}. Aggiungila nelle Impostazioni del plugin prima di usare la campagna.`,
+        cls: 'setting-item-description mod-warning',
+      });
+    } else if (hasKey) {
+      contentEl.createEl('p', {
+        text: `✓ Chiave API configurata per ${PROVIDER_LABELS[this.state.provider]}.`,
+        cls: 'setting-item-description',
+      });
+    }
 
     this.renderNavButtons(true, true);
   }
@@ -118,10 +167,20 @@ export class NuovaCampagnaModal extends Modal {
       const box = contentEl.createDiv({ cls: 'bloc-faction-box' });
       box.createEl('strong', { text: f.nome || `Fazione ${fi + 1}` });
 
-      new Setting(box).setName('Nome').addText(t => t.setValue(f.nome).onChange(v => { f.nome = v; f.id = slugify(v); }));
-      new Setting(box).setName('Obiettivo').addText(t => t.setValue(f.obiettivo).onChange(v => { f.obiettivo = v; }));
-      new Setting(box).setName('Svantaggio ID').addText(t => t.setValue(f.svantaggio.id).onChange(v => { f.svantaggio.id = v; }));
-      new Setting(box).setName('Svantaggio Label').addText(t => t.setValue(f.svantaggio.label).onChange(v => { f.svantaggio.label = v; }));
+      new Setting(box).setName('Nome').addText(t => t
+        .setValue(f.nome)
+        .onChange(v => { f.nome = v; f.id = slugify(v); }));
+      new Setting(box).setName('Obiettivo').addText(t => t
+        .setValue(f.obiettivo)
+        .onChange(v => { f.obiettivo = v; }));
+      new Setting(box).setName('Svantaggio — ID').addText(t => t
+        .setPlaceholder('es. isolamento')
+        .setValue(f.svantaggio.id)
+        .onChange(v => { f.svantaggio.id = v; }));
+      new Setting(box).setName('Svantaggio — Etichetta').addText(t => t
+        .setPlaceholder('es. Isolamento diplomatico')
+        .setValue(f.svantaggio.label)
+        .onChange(v => { f.svantaggio.label = v; }));
 
       const removeBtn = box.createEl('button', { text: 'Rimuovi fazione', cls: 'mod-warning' });
       removeBtn.addEventListener('click', () => {
@@ -161,11 +220,11 @@ export class NuovaCampagnaModal extends Modal {
     }
 
     if (showNext) {
-      const nextBtn = btnRow.createEl('button', { text: nextLabel, cls: 'mod-cta' });
-      nextBtn.addEventListener('click', () => {
-        this.step++;
-        this.renderStep();
-      });
+      btnRow.createEl('button', { text: nextLabel, cls: 'mod-cta' })
+        .addEventListener('click', () => {
+          this.step++;
+          this.renderStep();
+        });
     }
   }
 
@@ -186,7 +245,6 @@ export class NuovaCampagnaModal extends Modal {
         llm: {
           provider: this.state.provider,
           model: this.state.model,
-          api_key_env: this.state.api_key_env,
           temperature_mechanical: 0.2,
           temperature_narrative: 0.7,
         },

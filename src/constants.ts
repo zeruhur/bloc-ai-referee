@@ -45,7 +45,7 @@ export const DEFAULT_SETTINGS: BlocPluginSettings = {
   openAIBaseUrl: 'https://api.openai.com/v1',
   openRouterBaseUrl: 'https://openrouter.ai/api/v1',
   defaultCampaignSlug: '',
-  modelApiKeyEnvVar: '',
+  apiKeys: {},
   cachedModels: {},
 };
 

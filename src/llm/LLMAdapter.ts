@@ -14,7 +14,7 @@ export class LLMValidationError extends Error {
 }
 
 export async function createAdapter(config: LLMConfig, app: App): Promise<LLMAdapter> {
-  const apiKey = readApiKey(config.api_key_env, app);
+  const apiKey = resolveApiKey(config, app);
 
   switch (config.provider) {
     case 'google_ai_studio': {
@@ -46,10 +46,17 @@ export async function createAdapter(config: LLMConfig, app: App): Promise<LLMAda
   }
 }
 
-function readApiKey(envVar: string, _app: App): string {
-  if (typeof process !== 'undefined' && process.env?.[envVar]) {
-    return process.env[envVar] as string;
+function resolveApiKey(config: LLMConfig, app: App): string {
+  // 1. Key stored in plugin settings (set via Settings tab)
+  const pluginSettings = (app as any).plugins?.getPlugin('bloc-ai-referee')?.settings;
+  const stored: string | undefined = pluginSettings?.apiKeys?.[config.provider];
+  if (stored) return stored;
+
+  // 2. Environment variable (power-user / CI fallback)
+  if (config.api_key_env && typeof process !== 'undefined' && process.env?.[config.api_key_env]) {
+    return process.env[config.api_key_env] as string;
   }
+
   return '';
 }
 

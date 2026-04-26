@@ -3,16 +3,16 @@ import type { BlocPluginSettings, LLMProvider } from '../types';
 export interface FetchModelsOptions {
   provider: LLMProvider;
   settings: BlocPluginSettings;
-  apiKey: string;
 }
 
 export async function fetchModels(opts: FetchModelsOptions): Promise<string[]> {
+  const key = opts.settings.apiKeys?.[opts.provider] ?? '';
   switch (opts.provider) {
-    case 'google_ai_studio': return fetchGeminiModels(opts.apiKey);
+    case 'google_ai_studio': return fetchGeminiModels(key);
     case 'ollama':           return fetchOllamaModels(opts.settings.ollamaBaseUrl);
-    case 'openai':           return fetchOpenAIModels(opts.settings.openAIBaseUrl, opts.apiKey);
-    case 'anthropic':        return fetchAnthropicModels(opts.apiKey);
-    case 'openrouter':       return fetchOpenRouterModels(opts.settings.openRouterBaseUrl, opts.apiKey);
+    case 'openai':           return fetchOpenAIModels(opts.settings.openAIBaseUrl, key);
+    case 'anthropic':        return fetchAnthropicModels(key);
+    case 'openrouter':       return fetchOpenRouterModels(opts.settings.openRouterBaseUrl, key);
   }
 }
 
@@ -74,7 +74,3 @@ async function fetchOpenRouterModels(baseUrl: string, apiKey: string): Promise<s
   return (data.data as any[]).map((m: any) => m.id).sort();
 }
 
-export function readApiKeyFromEnv(envVar: string): string {
-  if (!envVar) return '';
-  return (typeof process !== 'undefined' && process.env?.[envVar]) ? process.env[envVar]! : '';
-}

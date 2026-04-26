@@ -1,7 +1,7 @@
 import { App, Notice, PluginSettingTab, Setting } from 'obsidian';
 import type { LLMProvider } from '../types';
 import { PROVIDER_LABELS } from '../constants';
-import { fetchModels, readApiKeyFromEnv } from '../llm/ModelFetcher';
+import { fetchModels } from '../llm/ModelFetcher';
 import type BlocPlugin from '../main';
 
 const PROVIDER_ORDER: LLMProvider[] = [
@@ -11,6 +11,9 @@ const PROVIDER_ORDER: LLMProvider[] = [
   'openrouter',
   'ollama',
 ];
+
+// Providers that require an API key
+const PROVIDERS_WITH_KEY: LLMProvider[] = ['google_ai_studio', 'anthropic', 'openai', 'openrouter'];
 
 export class BlocSettingsTab extends PluginSettingTab {
   private modelDropdown: HTMLSelectElement | null = null;
@@ -42,8 +45,8 @@ export class BlocSettingsTab extends PluginSettingTab {
           }),
       );
 
-    // ---- LLM provider ----
-    containerEl.createEl('h3', { text: 'Configurazione LLM' });
+    // ---- Provider & Model ----
+    containerEl.createEl('h3', { text: 'Provider LLM' });
 
     new Setting(containerEl)
       .setName('Provider predefinito')
@@ -60,12 +63,10 @@ export class BlocSettingsTab extends PluginSettingTab {
           });
       });
 
-    // ---- Model selection ----
     const modelSetting = new Setting(containerEl)
       .setName('Modello')
-      .setDesc('Seleziona il modello oppure clicca "Aggiorna" per recuperare la lista dal provider.');
+      .setDesc('Clicca "Aggiorna" per scaricare la lista dal provider (richiede la chiave API configurata sotto).');
 
-    // Native <select> for the model list
     const selectWrapper = modelSetting.controlEl.createDiv({ cls: 'bloc-model-select-wrapper' });
     const select = selectWrapper.createEl('select', { cls: 'dropdown' });
     this.modelDropdown = select;
@@ -74,7 +75,6 @@ export class BlocSettingsTab extends PluginSettingTab {
     select.addEventListener('change', async () => {
       const provider = this.plugin.settings.defaultProvider;
       if (!this.plugin.settings.cachedModels) this.plugin.settings.cachedModels = {};
-      // Store selected model as first in the list so it stays selected after reload
       const models = this.plugin.settings.cachedModels[provider] ?? [];
       const chosen = select.value;
       this.plugin.settings.cachedModels[provider] = [
@@ -84,30 +84,45 @@ export class BlocSettingsTab extends PluginSettingTab {
       await this.plugin.saveSettings();
     });
 
-    // Refresh button
     modelSetting.addButton(btn =>
       btn
         .setButtonText('Aggiorna lista')
-        .setTooltip('Scarica la lista dei modelli disponibili dal provider selezionato')
+        .setTooltip('Scarica la lista dei modelli dal provider selezionato')
         .onClick(() => this.fetchAndRefreshModels()),
     );
 
-    // ---- API key env var (for fetching models) ----
-    new Setting(containerEl)
-      .setName('Variabile d\'ambiente API key')
-      .setDesc('Nome della variabile d\'ambiente contenente la chiave API del provider selezionato (usata solo per scaricare la lista modelli)')
-      .addText(text =>
-        text
-          .setPlaceholder('es. GEMINI_API_KEY, ANTHROPIC_API_KEY')
-          .setValue(this.plugin.settings.modelApiKeyEnvVar)
-          .onChange(async (value) => {
-            this.plugin.settings.modelApiKeyEnvVar = value.trim();
-            await this.plugin.saveSettings();
-          }),
-      );
+    // ---- API Keys ----
+    containerEl.createEl('h3', { text: 'Chiavi API' });
+    containerEl.createEl('p', {
+      text: 'Le chiavi sono salvate nei dati del plugin (non nei file della vault). Non vengono mai scritte in campagna.yaml.',
+      cls: 'setting-item-description',
+    });
 
-    // ---- Provider-specific URLs ----
-    containerEl.createEl('h3', { text: 'URL provider locali / proxy' });
+    for (const provider of PROVIDERS_WITH_KEY) {
+      new Setting(containerEl)
+        .setName(PROVIDER_LABELS[provider])
+        .addText(text => {
+          const input = text
+            .setPlaceholder('Incolla la chiave API')
+            .setValue(this.plugin.settings.apiKeys?.[provider] ?? '')
+            .onChange(async (value) => {
+              if (!this.plugin.settings.apiKeys) this.plugin.settings.apiKeys = {};
+              if (value.trim()) {
+                this.plugin.settings.apiKeys[provider] = value.trim();
+              } else {
+                delete this.plugin.settings.apiKeys[provider];
+              }
+              await this.plugin.saveSettings();
+            });
+          // Make it a password field
+          input.inputEl.type = 'password';
+          input.inputEl.autocomplete = 'off';
+          return input;
+        });
+    }
+
+    // ---- URL overrides ----
+    containerEl.createEl('h3', { text: 'URL locali / proxy' });
 
     new Setting(containerEl)
       .setName('URL base Ollama')
@@ -144,12 +159,6 @@ export class BlocSettingsTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           }),
       );
-
-    // ---- Note ----
-    containerEl.createEl('p', {
-      text: 'Le chiavi API non vengono mai salvate in questo plugin. Impostale come variabili d\'ambiente prima di avviare Obsidian (es. GEMINI_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY).',
-      cls: 'setting-item-description',
-    });
   }
 
   private populateModelDropdown(select: HTMLSelectElement): void {
@@ -178,24 +187,14 @@ export class BlocSettingsTab extends PluginSettingTab {
 
   private async fetchAndRefreshModels(): Promise<void> {
     const provider = this.plugin.settings.defaultProvider;
-    const apiKey = readApiKeyFromEnv(this.plugin.settings.modelApiKeyEnvVar);
-
     const notice = new Notice(`Recupero modelli da ${PROVIDER_LABELS[provider]}...`, 0);
 
     try {
-      const models = await fetchModels({
-        provider,
-        settings: this.plugin.settings,
-        apiKey,
-      });
+      const models = await fetchModels({ provider, settings: this.plugin.settings });
 
-      if (models.length === 0) {
-        throw new Error('Nessun modello trovato.');
-      }
+      if (models.length === 0) throw new Error('Nessun modello trovato.');
 
       if (!this.plugin.settings.cachedModels) this.plugin.settings.cachedModels = {};
-
-      // Preserve the previously selected model at the top if still valid
       const prev = this.plugin.settings.cachedModels[provider]?.[0];
       const deduped = prev && models.includes(prev)
         ? [prev, ...models.filter(m => m !== prev)]
