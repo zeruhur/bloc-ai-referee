@@ -14,6 +14,7 @@ export function buildNarrativePrompt(
   evaluations: EvaluationOutput[],
   compressedDeltas: GameStateDelta[],
   historySummary: string | null = null,
+  accordiContext: string | null = null,
 ): { system: string; user: string } {
   const historySection = historySummary
     ? `\n\nSTORIA PREGRESSA (riassunto):\n${historySummary}`
@@ -21,7 +22,8 @@ export function buildNarrativePrompt(
   const recentSection = compressedDeltas.length > 0
     ? `\n\nSTORIA RECENTE:\n${stringifyYaml(compressedDeltas)}`
     : '';
-  const deltaContext = historySection + recentSection;
+  const accordiSection = accordiContext ? `\n\n${accordiContext}` : '';
+  const deltaContext = historySection + recentSection + accordiSection;
 
   const system = `Sei l'arbitro narratore di "${campagna.meta.titolo}".
 

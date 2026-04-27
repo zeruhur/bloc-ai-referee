@@ -1,17 +1,12 @@
 import { z } from 'zod';
 import type { App } from 'obsidian';
-import type { AccordoPrivato, CampagnaPrivata } from '../types';
+import type { Accordo, CampagnaPrivata } from '../types';
 import { CAMPAGNE_FOLDER, CAMPAGNA_PRIVATO_FILE } from '../constants';
 import { parseYaml, stringifyYaml } from '../utils/yaml';
-
-const AccordoPrivatoSchema = z.object({
-  fazioni: z.array(z.string()),
-  termini: z.string(),
-  turno_scadenza: z.number().optional(),
-});
+import { AccordoSchema } from './schemas';
 
 const CampagnaPrivataSchema = z.object({
-  accordi: z.array(AccordoPrivatoSchema),
+  accordi: z.array(AccordoSchema),
 });
 
 function privataPath(slug: string): string {
@@ -24,11 +19,15 @@ export async function loadCampagnaPrivata(app: App, slug: string): Promise<Campa
   if (!exists) return { accordi: [] };
   const content = await app.vault.adapter.read(path);
   const raw = parseYaml<unknown>(content);
-  return CampagnaPrivataSchema.parse(raw);
+  return CampagnaPrivataSchema.parse(raw ?? { accordi: [] });
 }
 
-export async function appendAccordoPrivato(app: App, slug: string, accordo: AccordoPrivato): Promise<void> {
+export async function saveAccordiPrivati(app: App, slug: string, privata: CampagnaPrivata): Promise<void> {
+  await app.vault.adapter.write(privataPath(slug), stringifyYaml(privata));
+}
+
+export async function appendAccordoPrivato(app: App, slug: string, accordo: Accordo): Promise<void> {
   const privata = await loadCampagnaPrivata(app, slug);
   privata.accordi.push(accordo);
-  await app.vault.adapter.write(privataPath(slug), stringifyYaml(privata));
+  await saveAccordiPrivati(app, slug, privata);
 }

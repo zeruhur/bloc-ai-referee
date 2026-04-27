@@ -1,22 +1,25 @@
 import { App, Modal, Notice, Setting } from 'obsidian';
-import type { AccordoPrivato, FazioneConfig } from '../../types';
+import type { Accordo, FazioneConfig, TipoAccordo } from '../../types';
 
 export class RegistraAccordoModal extends Modal {
   private fazioniSelezionate: Set<string> = new Set();
   private termini = '';
   private turno_scadenza: number | undefined = undefined;
+  private tipo: TipoAccordo = 'non_aggressione';
 
   constructor(
     app: App,
     private fazioni: FazioneConfig[],
-    private onSubmit: (accordo: AccordoPrivato) => void,
+    private turnoCorrente: number,
+    private onSubmit: (accordo: Accordo) => void,
+    private titleText = 'Registra accordo privato',
   ) {
     super(app);
   }
 
   onOpen(): void {
     const { contentEl } = this;
-    contentEl.createEl('h2', { text: 'Registra accordo privato' });
+    contentEl.createEl('h2', { text: this.titleText });
 
     contentEl.createEl('p', { text: 'Fazioni coinvolte (minimo 2):' });
     for (const f of this.fazioni) {
@@ -27,6 +30,16 @@ export class RegistraAccordoModal extends Modal {
           else this.fazioniSelezionate.delete(f.id);
         }));
     }
+
+    new Setting(contentEl)
+      .setName('Tipo accordo')
+      .addDropdown(d => d
+        .addOption('non_aggressione', 'Non aggressione')
+        .addOption('militare', 'Militare')
+        .addOption('scambio', 'Scambio')
+        .addOption('supporto', 'Supporto')
+        .setValue(this.tipo)
+        .onChange(v => { this.tipo = v as TipoAccordo; }));
 
     new Setting(contentEl)
       .setName('Termini dell\'accordo')
@@ -56,10 +69,15 @@ export class RegistraAccordoModal extends Modal {
       new Notice('Inserisci i termini dell\'accordo.');
       return;
     }
-    const accordo: AccordoPrivato = {
+    const accordo: Accordo = {
+      id: `accordo-${Date.now()}`,
       fazioni: Array.from(this.fazioniSelezionate),
+      tipo: this.tipo,
       termini: this.termini.trim(),
+      turno_stipula: this.turnoCorrente,
       turno_scadenza: this.turno_scadenza,
+      stato: 'attivo',
+      violazioni: [],
     };
     this.onSubmit(accordo);
     this.close();

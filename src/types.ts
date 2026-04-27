@@ -19,15 +19,30 @@ export interface OracleResult {
   turno: number;
 }
 
-// ---- Fog of war: private agreements ----
+// ---- Agreements ----
 
-export interface AccordoPrivato {
+export type TipoAccordo = 'scambio' | 'non_aggressione' | 'militare' | 'supporto';
+export type StatoAccordo = 'attivo' | 'violato' | 'scaduto' | 'risolto';
+
+export interface Accordo {
+  id: string;
   fazioni: string[];
+  tipo: TipoAccordo;
   termini: string;
+  turno_stipula: number;
   turno_scadenza?: number;
+  stato: StatoAccordo;
+  violazioni: { turno: number; fazione: string }[];
 }
+
+export interface AccordiPubblici {
+  accordi: Accordo[];
+}
+
+// ---- Fog of war ----
+
 export interface CampagnaPrivata {
-  accordi: AccordoPrivato[];
+  accordi: Accordo[];
 }
 
 // ---- State machine ----
@@ -43,7 +58,7 @@ export type CampagnaStato =
 
 export type LLMProvider = 'google_ai_studio' | 'ollama' | 'openai' | 'anthropic' | 'openrouter';
 export type TipoAzione = 'principale' | 'leader';
-export type CategoriaAzione = 'standard' | 'latente' | 'difesa' | 'aiuto' | 'segreta';
+export type CategoriaAzione = 'standard' | 'latente' | 'difesa' | 'aiuto' | 'segreta' | 'spionaggio';
 export type TipoFazione = 'normale' | 'ia';
 export type Esito = 'no_e' | 'no' | 'no_ma' | 'si_ma' | 'si' | 'si_e';
 export type Modalita = 'alto' | 'basso' | 'neutro';
@@ -110,11 +125,13 @@ export interface AzioneDeclaration {
   categoria_azione: CategoriaAzione;
   azione: string;
   metodo: string;
-  /** Free-form argument for why this action should succeed. */
   argomento_vantaggio: string;
-  /** Counter-arguments from opponent factions — filled at Checkpoint 1. */
   argomenti_contro: ArgomentoContro[];
   fazione_aiutata?: string;
+  /** Cost paid for a secret action — the advantage sacrificed. */
+  costo_vantaggio?: string;
+  /** Target faction for a spionaggio action. */
+  target_fazione?: string;
   dettaglio_narrativo?: string;
   azione_extra?: boolean;
   valutazione?: EvaluationOutput;
@@ -152,6 +169,8 @@ export interface MatrixEntry {
 
 export interface MatrixOutput {
   azioni: MatrixEntry[];
+  /** Full matrix including secret actions — written to matrice-arbitro.md only. */
+  matrice_arbitro?: MatrixEntry[];
 }
 
 export interface DicePool {
@@ -213,6 +232,16 @@ export interface NarrativeOutput {
 export interface DirectConflict {
   fazione_a: string;
   fazione_b: string;
+}
+
+// ---- Spionaggio dice result ----
+
+export interface SpionaggioResult {
+  seed: number;
+  dado: number;
+  modificatore: number;
+  risultato: number;
+  scoperta: boolean;
 }
 
 // ---- Plugin settings ----

@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { buildMatrixPrompt } from '../src/pipeline/prompts/matrixPrompt';
 import { buildEvaluatePrompt } from '../src/pipeline/prompts/evaluatePrompt';
 import { buildNarrativePrompt } from '../src/pipeline/prompts/narrativePrompt';
-import type { AzioneDeclaration, Campagna, EvaluationOutput, MatrixOutput, RollResult } from '../src/types';
+import { buildCounterArgPrompt } from '../src/pipeline/prompts/counterArgPrompt';
+import type { AzioneDeclaration, Accordo, AccordiPubblici, CampagnaPrivata, Campagna, EvaluationOutput, MatrixOutput, RollResult } from '../src/types';
+import { buildAccordiContext } from '../src/pipeline/accordiContext';
 
 const campagnaFixture: Campagna = {
   meta: { titolo: 'Test Campaign', slug: 'test', turno_corrente: 2, turno_totale: 10, stato: 'raccolta' },
@@ -121,6 +123,81 @@ describe('buildEvaluatePrompt', () => {
     const { system } = buildEvaluatePrompt(campagnaFixture, matrixFixture, actionFixture, []);
     expect(system).toContain('LINEE GUIDA ARBITRO');
     expect(system).toContain('Plausibilità narrativa');
+  });
+});
+
+const accordoAttivo: Accordo = {
+  id: 'acc-1',
+  fazioni: ['draghi', 'elfi'],
+  tipo: 'militare',
+  termini: 'Alleanza difensiva alle vette.',
+  turno_stipula: 1,
+  turno_scadenza: 4,
+  stato: 'attivo',
+  violazioni: [],
+};
+
+describe('buildMatrixPrompt — accordi injection', () => {
+  it('injects ACCORDI ATTIVI when accordiContext is provided', () => {
+    const ctx = buildAccordiContext({ accordi: [accordoAttivo] }, { accordi: [] });
+    const { system } = buildMatrixPrompt(campagnaFixture, [actionFixture], [], null, ctx);
+    expect(system).toContain('ACCORDI ATTIVI');
+    expect(system).toContain('draghi / elfi');
+    expect(system).toContain('militare');
+  });
+
+  it('does NOT include ACCORDI ATTIVI when no accordiContext', () => {
+    const { system } = buildMatrixPrompt(campagnaFixture, [actionFixture], []);
+    expect(system).not.toContain('ACCORDI ATTIVI');
+  });
+
+  it('does not expose private accordo termini', () => {
+    const privato: Accordo = { ...accordoAttivo, id: 'priv-1', fazioni: ['conclave', 'imp'] };
+    const ctx = buildAccordiContext({ accordi: [] }, { accordi: [privato] });
+    const { system } = buildMatrixPrompt(campagnaFixture, [actionFixture], [], null, ctx);
+    expect(system).toContain('RISERVATO');
+    expect(system).not.toContain('Alleanza difensiva alle vette');
+  });
+
+  it('filters out spionaggio actions from user prompt', () => {
+    const spyAction: AzioneDeclaration = {
+      ...actionFixture,
+      fazione: 'elfi',
+      categoria_azione: 'spionaggio',
+      target_fazione: 'draghi',
+    };
+    const { user } = buildMatrixPrompt(campagnaFixture, [actionFixture, spyAction], []);
+    // spy action itself should not appear in the matrix actions list
+    expect(user).not.toContain('spionaggio');
+  });
+});
+
+describe('buildEvaluatePrompt — accordi and tradimento', () => {
+  it('injects ACCORDI ATTIVI when accordiContext provided', () => {
+    const ctx = buildAccordiContext({ accordi: [accordoAttivo] }, { accordi: [] });
+    const { system } = buildEvaluatePrompt(campagnaFixture, matrixFixture, actionFixture, [], null, ctx);
+    expect(system).toContain('ACCORDI ATTIVI');
+  });
+
+  it('injects TRADIMENTO RECENTE flag when tradimentoRecente=true', () => {
+    const { system } = buildEvaluatePrompt(
+      campagnaFixture, matrixFixture, actionFixture, [], null, null, true,
+    );
+    expect(system).toContain('TRADIMENTO RECENTE');
+    expect(system).toContain('scetticismo narrativo');
+  });
+
+  it('does NOT include TRADIMENTO RECENTE when flag is false', () => {
+    const { system } = buildEvaluatePrompt(campagnaFixture, matrixFixture, actionFixture, []);
+    expect(system).not.toContain('TRADIMENTO RECENTE');
+  });
+});
+
+describe('buildCounterArgPrompt — accordi injection', () => {
+  it('injects ACCORDI ATTIVI when accordiContext provided', () => {
+    const ctx = buildAccordiContext({ accordi: [accordoAttivo] }, { accordi: [] });
+    const { system } = buildCounterArgPrompt(campagnaFixture, [actionFixture], matrixFixture, [], null, ctx);
+    expect(system).toContain('ACCORDI ATTIVI');
   });
 });
 

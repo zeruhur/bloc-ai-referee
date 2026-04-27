@@ -67,12 +67,14 @@ export const AzioneDeclarationSchema = z.object({
   giocatore: z.string(),
   turno: z.number(),
   tipo_azione: z.enum(['principale', 'leader']),
-  categoria_azione: z.enum(['standard', 'latente', 'difesa', 'aiuto', 'segreta']),
+  categoria_azione: z.enum(['standard', 'latente', 'difesa', 'aiuto', 'segreta', 'spionaggio']),
   azione: z.string().max(80),
   metodo: z.string().max(200),
   argomento_vantaggio: z.string(),
   argomenti_contro: z.array(ArgomentoControSchema),
   fazione_aiutata: z.string().optional(),
+  costo_vantaggio: z.string().optional(),
+  target_fazione: z.string().optional(),
   dettaglio_narrativo: z.string().optional(),
   azione_extra: z.boolean().optional(),
   valutazione: z
@@ -91,4 +93,22 @@ export const AzioneDeclarationSchema = z.object({
       }),
     })
     .optional(),
+});
+
+// Retrocompatible with old campagna-privato.yaml (missing fields receive defaults)
+export const AccordoSchema = z.object({
+  id: z.string().default(() => `accordo-${Date.now()}`),
+  fazioni: z.array(z.string()),
+  tipo: z.enum(['scambio', 'non_aggressione', 'militare', 'supporto']).default('non_aggressione'),
+  termini: z.string(),
+  turno_stipula: z.number().default(0),
+  turno_scadenza: z.number().optional(),
+  stato: z.enum(['attivo', 'violato', 'scaduto', 'risolto']).default('attivo'),
+  violazioni: z
+    .array(z.object({ turno: z.number(), fazione: z.string() }))
+    .default([]),
+});
+
+export const AccordiPubbliciSchema = z.object({
+  accordi: z.array(AccordoSchema),
 });

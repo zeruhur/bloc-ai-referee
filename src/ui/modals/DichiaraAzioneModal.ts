@@ -67,13 +67,16 @@ export class DichiaraAzioneModal extends Modal {
         .addOption('difesa', 'Difesa')
         .addOption('aiuto', 'Aiuto')
         .addOption('segreta', 'Segreta')
+        .addOption('spionaggio', 'Spionaggio')
         .setValue(this.declaration.categoria_azione)
         .onChange(v => {
           this.declaration.categoria_azione = v as CategoriaAzione;
+          this.declaration.costo_vantaggio = undefined;
+          this.declaration.target_fazione = undefined;
           this.renderForm();
         }));
 
-    // Conditional section for 'aiuto'
+    // Conditional: aiuto
     if (this.declaration.categoria_azione === 'aiuto') {
       const altreFazioni = this.campagna.fazioni.filter(f => f.id !== this.declaration.fazione);
       new Setting(contentEl)
@@ -88,12 +91,51 @@ export class DichiaraAzioneModal extends Modal {
         });
     }
 
-    // Conditional note for 'segreta' and 'latente'
-    if (this.declaration.categoria_azione === 'segreta' || this.declaration.categoria_azione === 'latente') {
+    // Conditional: segreta
+    if (this.declaration.categoria_azione === 'segreta') {
+      const fazione = this.campagna.fazioni.find(f => f.id === this.declaration.fazione);
+      const vantaggi = fazione?.vantaggi ?? [];
+
       contentEl.createEl('p', {
-        text: this.declaration.categoria_azione === 'segreta'
-          ? 'Azione segreta: salvata fuori dal pipeline del turno corrente (come latente). Attivazione futura con "Attiva azione latente".'
-          : 'Azione latente: salvata fuori dal turno corrente. Attivare in futuro con "Attiva azione latente".',
+        text: 'Le azioni segrete richiedono il sacrificio di un vantaggio. L\'azione verrà risolta in questo turno ma non sarà visibile nella matrice pubblica.',
+        cls: 'setting-item-description',
+      });
+
+      new Setting(contentEl)
+        .setName('Vantaggio sacrificato')
+        .setDesc('Il vantaggio che questa fazione sacrifica per mantenere la segretezza.')
+        .addDropdown(d => {
+          d.addOption('', '— seleziona —');
+          vantaggi.forEach(v => d.addOption(v, v));
+          d.onChange(v => { this.declaration.costo_vantaggio = v || undefined; });
+        });
+    }
+
+    // Conditional: spionaggio
+    if (this.declaration.categoria_azione === 'spionaggio') {
+      const altreFazioni = this.campagna.fazioni.filter(f => f.id !== this.declaration.fazione);
+
+      contentEl.createEl('p', {
+        text: 'Se la fazione bersaglio ha un\'azione segreta attiva questo turno, verrà effettuato un dado scoperta prima della generazione della matrice (1d6 + MC_spia − MC_target, soglia 4).',
+        cls: 'setting-item-description',
+      });
+
+      new Setting(contentEl)
+        .setName('Fazione bersaglio')
+        .addDropdown(d => {
+          altreFazioni.forEach(f => d.addOption(f.id, f.nome));
+          if (altreFazioni[0]) {
+            d.setValue(this.declaration.target_fazione ?? altreFazioni[0].id);
+            this.declaration.target_fazione = this.declaration.target_fazione ?? altreFazioni[0].id;
+          }
+          d.onChange(v => { this.declaration.target_fazione = v; });
+        });
+    }
+
+    // Conditional: note for latente
+    if (this.declaration.categoria_azione === 'latente') {
+      contentEl.createEl('p', {
+        text: 'Azione latente: salvata fuori dal turno corrente. Attivare in futuro con "Attiva azione latente".',
         cls: 'setting-item-description',
       });
     }
@@ -135,6 +177,16 @@ export class DichiaraAzioneModal extends Modal {
       return;
     }
 
+    if (declaration.categoria_azione === 'segreta' && !declaration.costo_vantaggio) {
+      new Notice('Seleziona il vantaggio sacrificato per l\'azione segreta.');
+      return;
+    }
+
+    if (declaration.categoria_azione === 'spionaggio' && !declaration.target_fazione) {
+      new Notice('Seleziona la fazione bersaglio.');
+      return;
+    }
+
     // Leader availability check
     if (declaration.tipo_azione === 'leader') {
       const fazione = campagna.fazioni.find(f => f.id === declaration.fazione);
@@ -163,6 +215,8 @@ export class DichiaraAzioneModal extends Modal {
       argomento_vantaggio: declaration.argomento_vantaggio!,
       argomenti_contro: [],
       fazione_aiutata: declaration.fazione_aiutata,
+      costo_vantaggio: declaration.costo_vantaggio,
+      target_fazione: declaration.target_fazione,
       dettaglio_narrativo: declaration.dettaglio_narrativo,
     };
 

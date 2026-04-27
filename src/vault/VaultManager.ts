@@ -1,9 +1,10 @@
 import type { App, TFile } from 'obsidian';
-import type { AzioneDeclaration, Campagna } from '../types';
+import type { Accordo, AccordiPubblici, AzioneDeclaration, Campagna, StatoAccordo } from '../types';
 import {
   buildFileWithFrontmatter,
   parseFrontmatter,
   patchFrontmatter,
+  parseYaml,
   stringifyYaml,
 } from '../utils/yaml';
 import { turnFolderName } from '../utils/markdown';
@@ -12,11 +13,15 @@ import {
   FAZIONI_FOLDER,
   CAMPAGNA_FILE,
   ACTION_FILE_PREFIX,
+  SECRET_ACTION_SUFFIX,
   MATRIX_FILE,
+  ARBITER_MATRIX_FILE,
   ROLLS_FILE,
   NARRATIVE_FILE,
+  CAMPAGNA_ACCORDI_PUBBLICI_FILE,
 } from '../constants';
 import { saveLatentAction } from './FactionLoader';
+import { AccordiPubbliciSchema } from './schemas';
 
 export function campaignPath(slug: string): string {
   return `${CAMPAGNE_FOLDER}/${slug}`;
@@ -30,8 +35,16 @@ export function actionFilePath(slug: string, turno: number, fazioneId: string): 
   return `${turnPath(slug, turno)}/${ACTION_FILE_PREFIX}${fazioneId}.md`;
 }
 
+export function secretActionFilePath(slug: string, turno: number, fazioneId: string): string {
+  return `${turnPath(slug, turno)}/${ACTION_FILE_PREFIX}${fazioneId}${SECRET_ACTION_SUFFIX}.md`;
+}
+
 export function matrixFilePath(slug: string, turno: number): string {
   return `${turnPath(slug, turno)}/${MATRIX_FILE}`;
+}
+
+export function arbiterMatrixFilePath(slug: string, turno: number): string {
+  return `${turnPath(slug, turno)}/${ARBITER_MATRIX_FILE}`;
 }
 
 export function rollsFilePath(slug: string, turno: number): string {
@@ -40,6 +53,10 @@ export function rollsFilePath(slug: string, turno: number): string {
 
 export function narrativeFilePath(slug: string, turno: number): string {
   return `${turnPath(slug, turno)}/${NARRATIVE_FILE}`;
+}
+
+export function accordiPubbliciPath(slug: string): string {
+  return `${campaignPath(slug)}/${CAMPAGNA_ACCORDI_PUBBLICI_FILE}`;
 }
 
 export async function ensureFolder(app: App, path: string): Promise<void> {
@@ -60,12 +77,15 @@ export async function writeActionFile(
   turno: number,
   action: AzioneDeclaration,
 ): Promise<void> {
-  if (action.categoria_azione === 'latente' || action.categoria_azione === 'segreta') {
+  if (action.categoria_azione === 'latente') {
     await saveLatentAction(app, slug, action.fazione, action);
     return;
   }
   await ensureTurnFolder(app, slug, turno);
-  const path = actionFilePath(slug, turno, action.fazione);
+  const isSecret = action.categoria_azione === 'segreta';
+  const path = isSecret
+    ? secretActionFilePath(slug, turno, action.fazione)
+    : actionFilePath(slug, turno, action.fazione);
   const { dettaglio_narrativo, ...llmFields } = action;
   const frontmatterData = dettaglio_narrativo
     ? { ...llmFields, dettaglio_narrativo }
@@ -140,4 +160,48 @@ export async function clearTurnFiles(
 
 export async function fileExists(app: App, path: string): Promise<boolean> {
   return app.vault.adapter.exists(path);
+}
+
+// ---- Accordi pubblici ----
+
+export async function loadAccordiPubblici(app: App, slug: string): Promise<AccordiPubblici> {
+  const path = accordiPubbliciPath(slug);
+  const exists = await app.vault.adapter.exists(path);
+  if (!exists) return { accordi: [] };
+  const content = await app.vault.adapter.read(path);
+  const raw = parseYaml<unknown>(content);
+  return AccordiPubbliciSchema.parse(raw ?? { accordi: [] });
+}
+
+export async function saveAccordoPubblico(app: App, slug: string, accordo: Accordo): Promise<void> {
+  const current = await loadAccordiPubblici(app, slug);
+  current.accordi.push(accordo);
+  await app.vault.adapter.write(accordiPubbliciPath(slug), stringifyYaml(current));
+}
+
+export async function patchAccordoStato(
+  app: App,
+  slug: string,
+  id: string,
+  stato: StatoAccordo,
+  violazione?: { turno: number; fazione: string },
+): Promise<void> {
+  const pubblici = await loadAccordiPubblici(app, slug);
+  const pubIdx = pubblici.accordi.findIndex(a => a.id === id);
+  if (pubIdx >= 0) {
+    pubblici.accordi[pubIdx].stato = stato;
+    if (violazione) pubblici.accordi[pubIdx].violazioni.push(violazione);
+    await app.vault.adapter.write(accordiPubbliciPath(slug), stringifyYaml(pubblici));
+    return;
+  }
+
+  // Fall back to private agreements
+  const { loadCampagnaPrivata, saveAccordiPrivati } = await import('./CampagnaPrivataManager');
+  const privata = await loadCampagnaPrivata(app, slug);
+  const privIdx = privata.accordi.findIndex(a => a.id === id);
+  if (privIdx >= 0) {
+    privata.accordi[privIdx].stato = stato;
+    if (violazione) privata.accordi[privIdx].violazioni.push(violazione);
+    await saveAccordiPrivati(app, slug, privata);
+  }
 }

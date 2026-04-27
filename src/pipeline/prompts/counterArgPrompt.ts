@@ -7,6 +7,7 @@ export function buildCounterArgPrompt(
   matrix: MatrixOutput,
   compressedDeltas: GameStateDelta[],
   historySummary: string | null = null,
+  accordiContext: string | null = null,
 ): { system: string; user: string } {
   const historySection = historySummary
     ? `\n\nSTORIA PREGRESSA (riassunto):\n${historySummary}`
@@ -14,7 +15,8 @@ export function buildCounterArgPrompt(
   const recentSection = compressedDeltas.length > 0
     ? `\n\nSTORIA RECENTE (ultimi turni):\n${stringifyYaml(compressedDeltas)}`
     : '';
-  const deltaContext = historySection + recentSection;
+  const accordiSection = accordiContext ? `\n\n${accordiContext}` : '';
+  const deltaContext = historySection + recentSection + accordiSection;
 
   const system = `Sei l'arbitro di una campagna di gioco di ruolo tattico chiamata "${campagna.meta.titolo}".
 

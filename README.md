@@ -19,7 +19,8 @@ Il plugin implementa una pipeline LLM a step separati per valutare le dichiarazi
 - **Tabelle procedurali IA** — tipo azione, reaction e conflitti IA-vs-IA risolti da tabelle Mulberry32, senza LLM
 - **Oracolo Yes/No** — risponde a domande dell'arbitro con dado modificabile (Improbabile/Neutro/Probabile), log in `oracolo.md`
 - **Meccanica Leader** — nome, disponibilità per turno (1d6 + MC) e eliminazione con penalità MC
-- **Accordi privati (fog of war)** — accordi segreti tra fazioni in `campagna-privato.yaml`, mai inviati all'LLM
+- **Fog of War completo** — azioni segrete (risolte nel turno ma invisibili nella matrice pubblica), spionaggio con dado scoperta pre-pipeline, doppia matrice (pubblica + arbitro)
+- **Accordi e alleanze** — accordi pubblici e privati iniettati nel contesto LLM; tradimento con penalità MC; scadenza automatica in `ChiudiTurno`
 - **Contro-argomentazione automatizzata** — l'LLM può generare le contro-argomentazioni al posto dei giocatori
 - **Modalità asincrona** — i giocatori possono dichiarare in momenti diversi; la modalità sincrona è un sottoinsieme dello stesso flusso
 
@@ -73,6 +74,9 @@ Per la guida completa vedi [GUIDA_UTENTE.md](docs/GUIDA_UTENTE.md).
 | `BLOC: Verifica disponibilità leader` | sempre | Tira disponibilità leader per tutte le fazioni, aggiorna `campagna.yaml` |
 | `BLOC: Elimina leader fazione` | sempre | Segna il leader come eliminato (MC −1 per la fazione) |
 | `BLOC: Registra accordo privato` | sempre | Salva un accordo segreto tra fazioni in `campagna-privato.yaml` |
+| `BLOC: Registra accordo pubblico` | sempre | Registra un accordo pubblico tra fazioni (iniettato nel contesto LLM) |
+| `BLOC: Dichiara tradimento` | sempre | Viola un accordo attivo (MC −1 alla fazione traditrice) |
+| `BLOC: Sciogli accordo` | sempre | Chiude un accordo per accordo reciproco, senza penalità |
 
 ---
 
@@ -81,16 +85,19 @@ Per la guida completa vedi [GUIDA_UTENTE.md](docs/GUIDA_UTENTE.md).
 ```
 /campagne/
   /{slug-campagna}/
-    campagna.yaml              ← stato globale + config LLM + profili fazioni
-    campagna-privato.yaml      ← accordi segreti (fog of war — mai inviato all'LLM)
-    oracolo.md                 ← log delle consultazioni oracolo
+    campagna.yaml                     ← stato globale + config LLM + profili fazioni
+    campagna-privato.yaml             ← accordi privati (fog of war — mai inviato all'LLM)
+    campagna-accordi-pubblici.yaml    ← accordi pubblici (iniettati nel contesto LLM)
+    oracolo.md                        ← log delle consultazioni oracolo
     /fazioni/
-      {slug}.md                ← scheda fazione (profilo, obiettivo)
+      {slug}.md                       ← scheda fazione (profilo, obiettivo)
     /turno-01/
-      azione-{fazione}.md      ← dichiarazione azione con argomento di vantaggio
-      matrice.md               ← output LLM Step 1
-      tiri.md                  ← log deterministico dei dadi
-      narrativa.md             ← output LLM Step 3 (per i giocatori)
+      azione-{fazione}.md             ← dichiarazione azione
+      azione-{fazione}-segreta.md     ← azione segreta (solo per l'arbitro)
+      matrice.md                      ← output Step 1 (pubblica — no azioni segrete)
+      matrice-arbitro.md              ← output Step 1 completo (include segrete)
+      tiri.md                         ← log deterministico dei dadi (include tiri spionaggio)
+      narrativa.md                    ← output LLM Step 3 (per i giocatori)
     /turno-02/
       ...
 ```

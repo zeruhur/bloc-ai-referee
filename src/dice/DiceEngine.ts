@@ -1,4 +1,4 @@
-import type { DicePool, DiceResult, Esito, IAConflictOutcome, MC, Modalita, ReactionResult, RollResult, TipoAzioneIA } from '../types';
+import type { AzioneDeclaration, Campagna, DicePool, DiceResult, Esito, IAConflictOutcome, MC, Modalita, ReactionResult, RollResult, SpionaggioResult, TipoAzioneIA } from '../types';
 import { ESITO_MAP, LEADER_AVAILABILITY_THRESHOLD } from '../constants';
 
 // Mulberry32 seeded PRNG — deterministic, no external deps
@@ -78,6 +78,24 @@ export function rollFudge(seed?: number): { seed: number; risultato: MC } {
   const n = Math.floor(seededRandom(usedSeed) * 3); // 0, 1, or 2
   const risultato = (n - 1) as MC; // 0→-1, 1→0, 2→+1
   return { seed: usedSeed, risultato };
+}
+
+// ---- Spionaggio ----
+
+export function resolveSpionaggio(
+  spia: AzioneDeclaration,
+  campagna: Campagna,
+  seed?: number,
+): SpionaggioResult {
+  const usedSeed = seed ?? Date.now();
+  const spiaMC: number = campagna.fazioni.find(f => f.id === spia.fazione)?.mc ?? 0;
+  const targetMC: number = spia.target_fazione
+    ? (campagna.fazioni.find(f => f.id === spia.target_fazione)?.mc ?? 0)
+    : 0;
+  const dado = rollDie(usedSeed);
+  const modificatore = spiaMC - targetMC;
+  const risultato = Math.max(1, Math.min(6, dado + modificatore));
+  return { seed: usedSeed, dado, modificatore, risultato, scoperta: risultato >= 4 };
 }
 
 export interface DirectConflictResult {

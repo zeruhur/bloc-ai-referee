@@ -33,12 +33,15 @@ export const FAZIONI_FOLDER = 'fazioni';
 export const CAMPAGNA_FILE = 'campagna.yaml';
 export const CAMPAGNA_PRIVATO_FILE = 'campagna-privato.yaml';
 export const ACTION_FILE_PREFIX = 'azione-';
+export const SECRET_ACTION_SUFFIX = '-segreta';
 export const MATRIX_FILE = 'matrice.md';
+export const ARBITER_MATRIX_FILE = 'matrice-arbitro.md';
 export const ROLLS_FILE = 'tiri.md';
 export const NARRATIVE_FILE = 'narrativa.md';
 export const ORACLE_FILE = 'oracolo.md';
 export const LATENT_SUFFIX = '-latenti.yaml';
 export const TURN_FOLDER_PREFIX = 'turno-';
+export const CAMPAGNA_ACCORDI_PUBBLICI_FILE = 'campagna-accordi-pubblici.yaml';
 
 export const DEFAULT_SETTINGS: BlocPluginSettings = {
   defaultProvider: 'google_ai_studio',

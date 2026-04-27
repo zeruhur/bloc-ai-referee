@@ -18,6 +18,9 @@ import { cmdInterrogaOracolo } from './commands/InterrogaOracolo';
 import { cmdVerificaLeader } from './commands/VerificaLeader';
 import { cmdEliminaLeader } from './commands/EliminaLeader';
 import { cmdRegistraAccordoPrivato } from './commands/RegistraAccordoPrivato';
+import { cmdRegistraAccordoPubblico } from './commands/RegistraAccordoPubblico';
+import { cmdDichiaraTradimento } from './commands/DichiaraTradimento';
+import { cmdSciogliAccordo } from './commands/SciogliAccordo';
 import { cmdGeneraLeader } from './commands/GeneraLeader';
 
 export default class BlocPlugin extends Plugin {
@@ -116,6 +119,24 @@ export default class BlocPlugin extends Plugin {
       id: 'registra-accordo-privato',
       name: 'BLOC: Registra accordo privato',
       callback: () => cmdRegistraAccordoPrivato(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'registra-accordo-pubblico',
+      name: 'BLOC: Registra accordo pubblico',
+      callback: () => cmdRegistraAccordoPubblico(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'dichiara-tradimento',
+      name: 'BLOC: Dichiara tradimento',
+      callback: () => cmdDichiaraTradimento(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'sciogli-accordo',
+      name: 'BLOC: Sciogli accordo',
+      callback: () => cmdSciogliAccordo(this.app, this),
     });
 
     this.addCommand({

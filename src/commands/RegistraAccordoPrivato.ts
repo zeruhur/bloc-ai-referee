@@ -9,9 +9,9 @@ export async function cmdRegistraAccordoPrivato(app: App, plugin: BlocPlugin): P
   const campagna = await loadActiveCampagna(app, plugin);
   if (!campagna) return;
 
-  const { slug } = campagna.meta;
+  const { slug, turno_corrente } = campagna.meta;
 
-  new RegistraAccordoModal(app, campagna.fazioni, async (accordo) => {
+  new RegistraAccordoModal(app, campagna.fazioni, turno_corrente, async (accordo) => {
     await appendAccordoPrivato(app, slug, accordo);
     new Notice('Accordo privato registrato.');
   }).open();

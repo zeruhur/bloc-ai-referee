@@ -12,7 +12,7 @@ Questa guida copre tutto il necessario per usare il plugin, dalla prima installa
 6. [Azioni speciali](#6-azioni-speciali)
 7. [Oracolo](#7-oracolo)
 8. [Meccanica Leader](#8-meccanica-leader)
-9. [Accordi privati (fog of war)](#9-accordi-privati-fog-of-war)
+9. [Accordi e alleanze](#9-accordi-e-alleanze)
 10. [Struttura dei file](#10-struttura-dei-file)
 11. [Gestione provider LLM](#11-gestione-provider-llm)
 12. [Riferimento comandi](#12-riferimento-comandi)
@@ -203,13 +203,41 @@ Per generare rapidamente le dichiarazioni delle fazioni IA senza aprire il form 
 
 ### Azioni latenti
 
-Le azioni con `tipo_azione: latente` vengono salvate in `/fazioni/{slug}-latenti.yaml` — visibili solo all'arbitro. Il plugin le include nel contesto LLM solo al turno di attivazione dichiarato.
+Le azioni con `categoria_azione: latente` vengono salvate in `/fazioni/{slug}-latenti.yaml` — visibili solo all'arbitro. Il plugin le include nel contesto LLM solo al turno di attivazione dichiarato.
 
 Usa **`BLOC: Attiva azione latente`** per renderle operative al momento opportuno.
 
 ### Azioni di difesa
 
-Le azioni con `tipo_azione: difesa` non richiedono un obiettivo offensivo. La valutazione LLM le tratta come risposta reattiva: gli argomenti difensivi vengono valutati con più attenzione al contesto e, in caso di parità di netto nel conflitto diretto, il difensore prevale.
+Le azioni con `categoria_azione: difesa` non richiedono un obiettivo offensivo. La valutazione LLM le tratta come risposta reattiva: gli argomenti difensivi vengono valutati con più attenzione al contesto e, in caso di parità di netto nel conflitto diretto, il difensore prevale.
+
+### Azioni segrete
+
+Le azioni con `categoria_azione: segreta` vengono risolte **nel turno corrente** — entrano nel pipeline LLM normalmente — ma non appaiono nella `matrice.md` pubblica condivisa con i giocatori. L'arbitro può consultare `matrice-arbitro.md` che le include con il marcatore `[SEGRETO]`.
+
+**Costo**: un'azione segreta richiede il sacrificio di un vantaggio della fazione. Il form chiede di selezionare quale vantaggio viene "bruciato" per mantenere la segretezza.
+
+Dopo la generazione della narrativa, la segretezza decade: `narrativa.md` include gli effetti dell'azione segreta come qualsiasi altra.
+
+> **Differenza da latente**: l'azione latente non viene risolta nel turno corrente; l'azione segreta sì — è solo invisibile agli altri giocatori durante la fase di dichiarazione e matrice.
+
+### Azioni di spionaggio
+
+Le azioni con `categoria_azione: spionaggio` tentano di scoprire un'azione segreta attiva di una fazione bersaglio.
+
+**Come funziona:**
+
+1. Dichiara l'azione di spionaggio con **`BLOC: Dichiara azione`** → scegli `Spionaggio` e seleziona la fazione bersaglio
+2. Prima della chiamata LLM di Step 1, il plugin tira automaticamente il **dado scoperta**: `1d6 + MC_spia − MC_target`
+3. Se il risultato è ≥ 4 → **scoperta**: l'azione segreta bersaglio appare in `matrice.md` con il marcatore `[SCOPERTA]`
+4. Se il risultato è < 4 → **fallimento**: la segreta rimane nascosta
+
+Il tiro viene registrato in `tiri.md` nella sezione pre-pipeline, prima dei tiri normali.
+
+| Risultato modificato | Esito |
+|:---:|---|
+| 1–3 | Fallimento — l'azione segreta rimane nascosta |
+| 4–6 | Scoperta — l'azione segreta entra in `matrice.md` con `[SCOPERTA]` |
 
 ## 7. Oracolo
 
@@ -272,34 +300,83 @@ Dichiara un'azione con `tipo_azione: leader`. Il form verifica automaticamente l
 
 Seleziona la fazione dal picker (mostra solo fazioni con `leader.presente === true`). Il plugin imposta `presente: false` e applica MC −1.
 
-## 9. Accordi privati (fog of war)
+## 9. Accordi e alleanze
 
-Gli accordi segreti tra fazioni vengono registrati in `campagna-privato.yaml`. Questo file **non viene mai incluso nel contesto inviato all'LLM** — è l'unico file della campagna con questa garanzia.
+Il plugin supporta due tipi di accordi tra fazioni: **pubblici** (noti a tutti, iniettati nel contesto LLM) e **privati** (segreti, mai inviati all'LLM).
 
-**Quando usarlo:** ogni volta che due fazioni stringono un patto che le altre fazioni — e l'LLM-arbitro — non devono conoscere.
+### Accordi pubblici
 
-**Comando:** `BLOC: Registra accordo privato`
+Gli accordi pubblici vengono salvati in `campagna-accordi-pubblici.yaml` e **iniettati come sezione `ACCORDI ATTIVI` nel system prompt** di ogni chiamata LLM del turno. L'LLM conosce l'esistenza dell'accordo e i suoi termini — questo influenza la valutazione degli argomenti e la narrativa.
 
-### Form di registrazione
+**Comando:** `BLOC: Registra accordo pubblico`
 
 | Campo | Descrizione |
 |---|---|
 | **Fazioni coinvolte** | Toggle multiplo — richiede almeno 2 fazioni |
+| **Tipo accordo** | `non_aggressione`, `militare`, `scambio`, `supporto` |
 | **Termini** | Testo libero che descrive l'accordo |
-| **Turno di scadenza** *(opzionale)* | Promemoria per l'arbitro — non applicato automaticamente |
+| **Turno di scadenza** *(opzionale)* | Se specificato, l'accordo scade automaticamente in `ChiudiTurno` |
 
-### Struttura del file
+### Accordi privati
 
+Gli accordi privati vengono salvati in `campagna-privato.yaml`. Questo file **non viene mai incluso nel contesto inviato all'LLM** — è l'unico file della campagna con questa garanzia.
+
+Nel contesto LLM gli accordi privati appaiono solo come `[RISERVATO — accordo privato tra Fazione A / Fazione B]`: l'LLM sa che esiste un accordo senza conoscerne i termini.
+
+**Comando:** `BLOC: Registra accordo privato`
+
+Il form è identico a quello per gli accordi pubblici.
+
+### Tradimento
+
+Quando una fazione viola un accordo attivo:
+
+**Comando:** `BLOC: Dichiara tradimento`
+
+1. Seleziona l'accordo violato dal picker (mostra tutti gli accordi `attivo`)
+2. Indica la fazione traditrice
+3. Il plugin aggiorna lo stato dell'accordo a `violato`, registra la violazione con il numero di turno, e applica **MC −1** alla fazione traditrice
+4. Nei turni successivi, il flag `[TRADIMENTO RECENTE]` viene iniettato nel profilo della fazione nel prompt di valutazione — l'LLM pesa gli argomenti diplomatici e di supporto di quella fazione con scetticismo narrativo
+
+### Sciogliere un accordo
+
+Per terminare un accordo consensualmente, senza penalità:
+
+**Comando:** `BLOC: Sciogli accordo`
+
+Lo stato dell'accordo passa a `risolto`. Gli accordi scaduti o risolti rimangono nei file come storico consultabile.
+
+### Scadenza automatica
+
+In **`BLOC: Chiudi turno`**, prima di incrementare il numero di turno, il plugin verifica tutti gli accordi attivi con `turno_scadenza` impostato. Quelli con `turno_scadenza ≤ turno_corrente` vengono automaticamente marcati come `scaduto`. Una notice elenca gli accordi scaduti nel turno.
+
+### Struttura dei file
+
+**`campagna-accordi-pubblici.yaml`:**
 ```yaml
 accordi:
-  - fazioni: [draghi, mercenari]
-    termini: "I Draghi non intervengono a ovest del fiume. I Mercenari non accettano incarichi contro i Draghi per 3 turni."
-    turno_scadenza: 7
-  - fazioni: [negromanti, empire]
-    termini: "Cessate il fuoco segreto — nessun attacco diretto fino al turno 5."
+  - id: accordo-1714234800000
+    fazioni: [draghi, mercenari]
+    tipo: militare
+    termini: "I Draghi forniscono copertura aerea; i Mercenari garantiscono forza a terra."
+    turno_stipula: 2
+    turno_scadenza: 6
+    stato: attivo
+    violazioni: []
 ```
 
-Il file viene creato automaticamente alla prima registrazione.
+**`campagna-privato.yaml`** (stesso schema, termini mai inviati all'LLM):
+```yaml
+accordi:
+  - id: accordo-1714234900000
+    fazioni: [negromanti, empire]
+    tipo: non_aggressione
+    termini: "Cessate il fuoco segreto — nessun attacco diretto fino al turno 5."
+    turno_stipula: 1
+    turno_scadenza: 5
+    stato: attivo
+    violazioni: []
+```
 
 ## 10. Struttura dei file
 
@@ -308,18 +385,20 @@ Il plugin gestisce tutto nella cartella `campagne/` della vault:
 ```
 campagne/
 └── {slug}/
-    ├── campagna.yaml          # Stato principale della campagna
-    ├── campagna-privato.yaml  # Accordi privati — mai inviato all'LLM
-    ├── oracolo.md             # Log delle risposte oracolari
+    ├── campagna.yaml                    # Stato principale della campagna
+    ├── campagna-privato.yaml            # Accordi privati — mai inviato all'LLM
+    ├── campagna-accordi-pubblici.yaml   # Accordi pubblici — iniettati nel contesto LLM
+    ├── oracolo.md                       # Log delle risposte oracolari
     └── turno-NN/
-        ├── azione-{fazione}.md    # Dichiarazioni del turno
-        ├── matrice.md             # Output Step 1
-        ├── valutazione.md         # Output Step 2 (pool e pesi)
-        ├── tiri.md                # Seed, dadi, esiti
-        ├── narrativa.md           # Output Step 3
-        └── archivio/              # File archiviati dopo ChiudiTurno
+        ├── azione-{fazione}.md          # Dichiarazioni normali del turno
+        ├── azione-{fazione}-segreta.md  # Azioni segrete (solo per l'arbitro)
+        ├── matrice.md                   # Output Step 1 — pubblica (no segrete)
+        ├── matrice-arbitro.md           # Output Step 1 — completa (include segrete)
+        ├── tiri.md                      # Seed, dadi, esiti (include tiri spionaggio)
+        ├── narrativa.md                 # Output Step 3
+        └── archivio/                    # File archiviati dopo ChiudiTurno
 fazioni/
-└── {slug}-latenti.yaml        # Azioni latenti in attesa di attivazione
+└── {slug}-latenti.yaml                  # Azioni latenti in attesa di attivazione
 ```
 
 ## 11. Gestione provider LLM
@@ -357,19 +436,22 @@ Assicurati che Ollama sia in ascolto prima di usare i comandi. L'URL base predef
 |---|---|---|
 | `BLOC: Nuova campagna` | sempre | Wizard di creazione campagna |
 | `BLOC: Dichiara azione` | `raccolta` | Auto-gen fazioni IA + form fazioni umane |
-| `BLOC: Genera matrice` | `raccolta` | LLM Step 1 — produce `matrice.md` |
+| `BLOC: Genera matrice` | `raccolta` | LLM Step 1 — produce `matrice.md` + `matrice-arbitro.md` |
 | `BLOC: Aggiorna svantaggi` | `matrice_generata` | Inserimento manuale contro-argomentazioni |
 | `BLOC: Auto contro-argomentazione` | `matrice_generata` | LLM genera le contro-argomentazioni |
 | `BLOC: Valuta azioni` | `contro_args` | LLM Step 2 — valuta argomenti e calcola pool |
 | `BLOC: Esegui tiri` | `valutazione` | Tira i dadi (deterministico, no LLM) |
 | `BLOC: Genera conseguenze` | `tiri` | LLM Step 3 — produce `narrativa.md` |
-| `BLOC: Chiudi turno` | `review` | Archivia e prepara il turno successivo |
+| `BLOC: Chiudi turno` | `review` | Scade accordi, archivia e prepara il turno successivo |
 | `BLOC: Stato campagna` | sempre | Riepilogo campagna e fazioni |
 | `BLOC: Attiva azione latente` | sempre | Attiva un'azione latente archiviata |
 | `BLOC: Interroga oracolo` | sempre | Risposta Sì/No a domanda (dado modificato) |
 | `BLOC: Verifica disponibilità leader` | sempre | Tira disponibilità leader, aggiorna `campagna.yaml` |
 | `BLOC: Elimina leader fazione` | sempre | Segna leader come eliminato (MC −1) |
 | `BLOC: Registra accordo privato` | sempre | Salva accordo segreto in `campagna-privato.yaml` |
+| `BLOC: Registra accordo pubblico` | sempre | Registra accordo pubblico iniettato nel contesto LLM |
+| `BLOC: Dichiara tradimento` | sempre | Viola un accordo attivo (MC −1 alla fazione traditrice) |
+| `BLOC: Sciogli accordo` | sempre | Chiude un accordo consensualmente, senza penalità |
 
 > Tutti i comandi sono accessibili dalla **Command Palette** (`Ctrl+P` / `Cmd+P`).
 
@@ -408,3 +490,23 @@ La chiave viene salvata in `.obsidian/plugins/bloc-ai-referee/data.json` — fil
 ### Il pulsante "Aggiorna lista" non mostra modelli
 
 Verifica che la chiave API sia inserita correttamente. Per Ollama, assicurati che il servizio sia attivo (`ollama serve`). Per OpenRouter la lista funziona anche senza chiave.
+
+### Qual è la differenza tra azione segreta e azione latente?
+
+L'**azione latente** non viene risolta nel turno corrente: viene archiviata e attivata in un turno futuro con `BLOC: Attiva azione latente`. Non entra mai nel pipeline LLM fino all'attivazione.
+
+L'**azione segreta** viene risolta **nel turno corrente** — partecipa al pipeline LLM normalmente — ma non compare nella `matrice.md` pubblica condivisa con i giocatori. L'arbitro vede tutto in `matrice-arbitro.md`. Richiede il sacrificio di un vantaggio della fazione.
+
+### Come funziona il dado spionaggio?
+
+`1d6 + MC_spia − MC_target`. Il risultato è clampato tra 1 e 6. Con risultato ≥ 4 l'azione segreta bersaglio viene scoperta e appare in `matrice.md` con `[SCOPERTA]`. Il tiro avviene automaticamente in `BLOC: Genera matrice` prima di qualsiasi chiamata LLM, e viene registrato in `tiri.md`.
+
+Lo spionaggio funziona solo se la fazione bersaglio ha effettivamente un'azione segreta nel turno corrente — se non ce l'ha, il tiro non viene effettuato.
+
+### Gli accordi influenzano meccanicamente i dadi?
+
+No. Gli accordi **non aggiungono o tolgono dadi automaticamente**. Vengono iniettati nel contesto LLM come informazione narrativa: è l'argomentazione del giocatore a citarli e l'LLM a pesarli nella valutazione degli argomenti. Un accordo militare con una fazione alleata rafforza la credibilità di un argomento di supporto — ma solo se il giocatore lo dichiara nell'argomento di vantaggio.
+
+### Cosa succede se un accordo viene violato più volte?
+
+Ogni tradimento si registra nel campo `violazioni` dell'accordo (con turno e fazione). Il flag `[TRADIMENTO RECENTE]` viene iniettato solo per la violazione più recente: l'LLM viene avvisato di trattare con scetticismo gli argomenti diplomatici di quella fazione nel turno successivo. Non c'è limite al numero di violazioni registrabili.

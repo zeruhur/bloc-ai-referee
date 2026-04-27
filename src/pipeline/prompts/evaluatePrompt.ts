@@ -7,6 +7,8 @@ export function buildEvaluatePrompt(
   action: AzioneDeclaration,
   compressedDeltas: GameStateDelta[],
   historySummary: string | null = null,
+  accordiContext: string | null = null,
+  tradimentoRecente: boolean = false,
 ): { system: string; user: string } {
   const historySection = historySummary
     ? `\n\nSTORIA PREGRESSA (riassunto):\n${historySummary}`
@@ -14,7 +16,15 @@ export function buildEvaluatePrompt(
   const recentSection = compressedDeltas.length > 0
     ? `\n\nSTORIA RECENTE:\n${stringifyYaml(compressedDeltas)}`
     : '';
-  const deltaContext = historySection + recentSection;
+  const accordiSection = accordiContext ? `\n\n${accordiContext}` : '';
+  const deltaContext = historySection + recentSection + accordiSection;
+
+  const factionProfiles = campagna.fazioni.map(f => {
+    const tradimento = tradimentoRecente && f.id === action.fazione
+      ? '\n  [TRADIMENTO RECENTE]: Questa fazione ha violato un accordo al turno precedente. Pesa eventuali argomentazioni diplomatiche o di supporto con scetticismo narrativo.'
+      : '';
+    return `- ${f.id} (${f.nome}):\n  Concetto: ${f.concetto}\n  Vantaggi: ${f.vantaggi.join(', ')}\n  Svantaggi: ${f.svantaggi.join(', ')}${tradimento}`;
+  }).join('\n');
 
   const system = `Sei l'arbitro di "${campagna.meta.titolo}".
 
@@ -25,7 +35,7 @@ MATRICE TURNO CORRENTE:
 ${stringifyYaml(matrice)}
 
 PROFILI FAZIONI:
-${campagna.fazioni.map(f => `- ${f.id} (${f.nome}):\n  Concetto: ${f.concetto}\n  Vantaggi: ${f.vantaggi.join(', ')}\n  Svantaggi: ${f.svantaggi.join(', ')}`).join('\n')}
+${factionProfiles}
 
 LINEE GUIDA ARBITRO:
 1. Plausibilità narrativa: l'argomento è coerente con l'ambientazione, il concetto della fazione e gli eventi precedenti?
