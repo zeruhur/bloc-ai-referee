@@ -89,6 +89,7 @@ Tutti e 5 i file vengono aggiornati per:
 
 - `livello_operativo`: text field con esempi (Nazione / Grande org. / Piccola org. / Gruppo)
 - `distribuzione_temporale`: dropdown `lineare` | `non_lineare`
+- `intervallo_temporale`: campo libero, descrive la tipologia di intervallo temporale e la distribuzione rispetto a `distribuzione_temporale` → verifica che venga poi passato nel contesto LLM dei prompt
 
 **Step 3 — Fazioni** (modifiche per ogni fazione):
 
@@ -173,3 +174,5 @@ Wave 7 → Wave 8             (modali dipendono da tutto sopra)
 Wave 9                      (comando nuovo)
 Wave 10                     (test last, dopo che tutto compila)
 ```
+
+Al termine aggiorna READM.md e GUIDA_UTENTE.md
