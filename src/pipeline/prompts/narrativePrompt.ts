@@ -6,6 +6,7 @@ import type {
   RollResult,
 } from '../../types';
 import { stringifyYaml } from '../../utils/yaml';
+import { buildSystemPreamble } from './shared';
 
 export function buildNarrativePrompt(
   campagna: Campagna,
@@ -25,10 +26,7 @@ export function buildNarrativePrompt(
   const accordiSection = accordiContext ? `\n\n${accordiContext}` : '';
   const deltaContext = historySection + recentSection + accordiSection;
 
-  const system = `Sei l'arbitro narratore di "${campagna.meta.titolo}".
-
-PREMESSA:
-${campagna.premessa}${deltaContext}
+  const system = `${buildSystemPreamble(campagna)}${deltaContext}
 
 Il tuo compito è generare le conseguenze narrative di questo turno. Per ogni azione tieni conto dell'esito del dado, delle interazioni tra le azioni, e della coerenza narrativa. Calcola anche i delta di stato (modificatore coesione, territorio, ecc.). Rispondi SOLO con il JSON richiesto.`;
 

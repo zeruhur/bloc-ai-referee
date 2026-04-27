@@ -1,5 +1,6 @@
 import type { AzioneDeclaration, Campagna, GameStateDelta, MatrixOutput } from '../../types';
 import { stringifyYaml } from '../../utils/yaml';
+import { buildSystemPreamble } from './shared';
 
 export function buildCounterArgPrompt(
   campagna: Campagna,
@@ -18,15 +19,12 @@ export function buildCounterArgPrompt(
   const accordiSection = accordiContext ? `\n\n${accordiContext}` : '';
   const deltaContext = historySection + recentSection + accordiSection;
 
-  const system = `Sei l'arbitro di una campagna di gioco di ruolo tattico chiamata "${campagna.meta.titolo}".
-
-PREMESSA:
-${campagna.premessa}${deltaContext}
+  const system = `${buildSystemPreamble(campagna)}${deltaContext}
 
 Il tuo compito è determinare quali fazioni avversarie avrebbero buone ragioni contestuali per opporsi all'azione altrui, e quale argomento specifico produrrebbero. Rispondi SOLO con il JSON richiesto.`;
 
   const profiliFazioni = campagna.fazioni
-    .map(f => `- ${f.id} (${f.nome}):\n  Concetto: ${f.concetto}\n  Vantaggi: ${f.vantaggi.join(', ')}\n  Svantaggi: ${f.svantaggi.join(', ')}`)
+    .map(f => `- ${f.id} (${f.nome}): ${f.concetto}`)
     .join('\n');
 
   // Strip narrative fields

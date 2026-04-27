@@ -1,5 +1,6 @@
 import type { AzioneDeclaration, Campagna, GameStateDelta, MatrixOutput } from '../../types';
 import { stringifyYaml } from '../../utils/yaml';
+import { buildSystemPreamble } from './shared';
 
 export function buildEvaluatePrompt(
   campagna: Campagna,
@@ -19,23 +20,17 @@ export function buildEvaluatePrompt(
   const accordiSection = accordiContext ? `\n\n${accordiContext}` : '';
   const deltaContext = historySection + recentSection + accordiSection;
 
-  const factionProfiles = campagna.fazioni.map(f => {
-    const tradimento = tradimentoRecente && f.id === action.fazione
-      ? '\n  [TRADIMENTO RECENTE]: Questa fazione ha violato un accordo al turno precedente. Pesa eventuali argomentazioni diplomatiche o di supporto con scetticismo narrativo.'
-      : '';
-    return `- ${f.id} (${f.nome}):\n  Concetto: ${f.concetto}\n  Vantaggi: ${f.vantaggi.join(', ')}\n  Svantaggi: ${f.svantaggi.join(', ')}${tradimento}`;
-  }).join('\n');
+  const factionRef = campagna.fazioni
+    .map(f => `- ${f.id} (${f.nome})`)
+    .join('\n');
 
-  const system = `Sei l'arbitro di "${campagna.meta.titolo}".
-
-PREMESSA:
-${campagna.premessa}${deltaContext}
+  const system = `${buildSystemPreamble(campagna)}${deltaContext}
 
 MATRICE TURNO CORRENTE:
 ${stringifyYaml(matrice)}
 
-PROFILI FAZIONI:
-${factionProfiles}
+FAZIONI:
+${factionRef}
 
 LINEE GUIDA ARBITRO:
 1. Plausibilità narrativa: l'argomento è coerente con l'ambientazione, il concetto della fazione e gli eventi precedenti?
@@ -48,8 +43,12 @@ Il tuo compito è valutare la forza degli argomenti dichiarati per questa azione
   // Strip dettaglio_narrativo and valutazione from LLM context
   const { dettaglio_narrativo: _dn, valutazione: _v, ...llmAction } = action;
 
+  const tradimentoNote = tradimentoRecente
+    ? `\n[TRADIMENTO RECENTE]: ${action.fazione} ha violato un accordo al turno precedente. Pesa argomentazioni diplomatiche o di supporto con scetticismo narrativo.\n`
+    : '';
+
   const user = `AZIONE DA VALUTARE:
-${stringifyYaml(llmAction)}
+${stringifyYaml(llmAction)}${tradimentoNote}
 
 REGOLE DI VALUTAZIONE:
 - "valutazione_vantaggio.peso" (0-3): quanti dadi positivi merita l'argomento di vantaggio della fazione, in base alla sua forza, pertinenza contestuale e coerenza con il profilo fazione. 0 = argomento invalido o irrilevante, 3 = argomento eccellente e decisivo.

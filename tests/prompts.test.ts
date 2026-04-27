@@ -94,11 +94,11 @@ describe('buildMatrixPrompt', () => {
     expect(system).not.toContain('STORIA RECENTE');
   });
 
-  it('includes faction concetto and vantaggi in user prompt', () => {
+  it('includes faction concetto in user prompt (vantaggi/svantaggi removed)', () => {
     const { user } = buildMatrixPrompt(campagnaFixture, [actionFixture], []);
-    expect(user).toContain('Mobilità aerea');
-    expect(user).toContain('Isolamento diplomatico');
     expect(user).toContain('Antichi guardiani');
+    expect(user).not.toContain('Mobilità aerea');
+    expect(user).not.toContain('Isolamento diplomatico');
   });
 });
 
@@ -180,11 +180,11 @@ describe('buildEvaluatePrompt — accordi and tradimento', () => {
   });
 
   it('injects TRADIMENTO RECENTE flag when tradimentoRecente=true', () => {
-    const { system } = buildEvaluatePrompt(
+    const { user } = buildEvaluatePrompt(
       campagnaFixture, matrixFixture, actionFixture, [], null, null, true,
     );
-    expect(system).toContain('TRADIMENTO RECENTE');
-    expect(system).toContain('scetticismo narrativo');
+    expect(user).toContain('TRADIMENTO RECENTE');
+    expect(user).toContain('scetticismo narrativo');
   });
 
   it('does NOT include TRADIMENTO RECENTE when flag is false', () => {

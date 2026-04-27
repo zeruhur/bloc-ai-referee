@@ -1,5 +1,6 @@
 import type { AzioneDeclaration, Campagna, GameStateDelta } from '../../types';
 import { stringifyYaml } from '../../utils/yaml';
+import { buildSystemPreamble } from './shared';
 
 export function buildMatrixPrompt(
   campagna: Campagna,
@@ -27,10 +28,7 @@ export function buildMatrixPrompt(
 - Il blocco "matrice_arbitro" deve contenere TUTTE le azioni (pubbliche + segrete), ciascuna marcata [SEGRETO] o [SCOPERTA] o [PUBBLICA].`
     : '';
 
-  const system = `Sei l'arbitro di una campagna di gioco di ruolo tattico chiamata "${campagna.meta.titolo}".
-
-PREMESSA:
-${campagna.premessa}${deltaContext}
+  const system = `${buildSystemPreamble(campagna, true)}${deltaContext}
 
 Il tuo compito è analizzare le dichiarazioni di azione delle fazioni e produrre una matrice strutturata che mostri chiaramente le interazioni tra le azioni.${secretInstructions} Rispondi SOLO con il JSON richiesto.`;
 
@@ -52,7 +50,7 @@ Il tuo compito è analizzare le dichiarazioni di azione delle fazioni e produrre
 ${stringifyYaml(llmActions)}
 
 PROFILI FAZIONI:
-${campagna.fazioni.map(f => `- ${f.id} (${f.nome}):\n  Concetto: ${f.concetto}\n  Vantaggi: ${f.vantaggi.join(', ')}\n  Svantaggi: ${f.svantaggi.join(', ')}`).join('\n')}
+${campagna.fazioni.map(f => `- ${f.id} (${f.nome}): ${f.concetto}`).join('\n')}
 
 Genera la matrice delle azioni. Per ogni fazione indica:
 - azione dichiarata e metodo sintetico

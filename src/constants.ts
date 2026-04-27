@@ -63,5 +63,5 @@ export const PROVIDER_LABELS: Record<import('./types').LLMProvider, string> = {
 
 export const LEADER_AVAILABILITY_THRESHOLD = 4;
 
-export const MAX_GAME_STATE_DELTAS_FULL = 10;
-export const MAX_GAME_STATE_DELTAS_OLLAMA = 5;
+export const MAX_GAME_STATE_DELTAS_FULL = 5;   // ridotto da 10 per contenere i token
+export const MAX_GAME_STATE_DELTAS_OLLAMA = 3;  // ridotto da 5

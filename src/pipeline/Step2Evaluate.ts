@@ -9,8 +9,7 @@ import type {
 } from '../types';
 import { loadActionsForTurn, actionFilePath } from '../vault/ActionLoader';
 import { parseFrontmatter } from '../utils/yaml';
-import { patchActionFrontmatter } from '../vault/VaultManager';
-import { matrixFilePath } from '../vault/VaultManager';
+import { patchActionFrontmatter, matrixFilePath, appendToRollsFile } from '../vault/VaultManager';
 import { patchCampagnaStato } from '../vault/CampaignWriter';
 import { buildEvaluatePrompt } from './prompts/evaluatePrompt';
 import { evaluateOutputSchema, EvaluateOutputZod } from './schemas/evaluateSchema';
@@ -54,6 +53,11 @@ export async function runStep2Evaluate(
       output_schema: evaluateOutputSchema,
       temperature: campagna.llm.temperature_mechanical,
     });
+
+    if (response.tokens_used) {
+      await appendToRollsFile(app, slug, turno_corrente,
+        `\n> 🔢 Step2Evaluate (${action.fazione}) — modello: ${response.model}, token usati: ${response.tokens_used}\n`);
+    }
 
     const validation = EvaluateOutputZod.safeParse(response.parsed);
     if (!validation.success) {

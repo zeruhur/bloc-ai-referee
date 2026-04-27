@@ -13,6 +13,7 @@ import {
   matrixFilePath,
   narrativeFilePath,
   fileExists,
+  appendToRollsFile,
 } from '../vault/VaultManager';
 import { patchCampagnaStato, appendGameStateDelta, patchFazioneMC } from '../vault/CampaignWriter';
 import { buildNarrativePrompt } from './prompts/narrativePrompt';
@@ -60,6 +61,11 @@ export async function runStep3Narrative(
     output_schema: narrativeOutputSchema,
     temperature: campagna.llm.temperature_narrative,
   });
+
+  if (response.tokens_used) {
+    await appendToRollsFile(app, slug, turno_corrente,
+      `\n> 🔢 Step3Narrative — modello: ${response.model}, token usati: ${response.tokens_used}\n`);
+  }
 
   const validation = NarrativeOutputZod.safeParse(response.parsed);
   if (!validation.success) {

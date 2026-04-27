@@ -1,7 +1,7 @@
 import type { App } from 'obsidian';
 import type { AzioneDeclaration, Campagna, LLMAdapter, MatrixOutput } from '../types';
 import { loadActionsForTurn } from '../vault/ActionLoader';
-import { matrixFilePath, actionFilePath, patchActionFrontmatter } from '../vault/VaultManager';
+import { matrixFilePath, actionFilePath, patchActionFrontmatter, appendToRollsFile } from '../vault/VaultManager';
 import { patchCampagnaStato } from '../vault/CampaignWriter';
 import { buildCounterArgPrompt } from './prompts/counterArgPrompt';
 import { counterArgOutputSchema, CounterArgOutputZod } from './schemas/counterArgSchema';
@@ -36,6 +36,11 @@ export async function runStepCounterArg(
     output_schema: counterArgOutputSchema,
     temperature: campagna.llm.temperature_mechanical,
   });
+
+  if (response.tokens_used) {
+    await appendToRollsFile(app, slug, turno_corrente,
+      `\n> 🔢 StepCounterArg — modello: ${response.model}, token usati: ${response.tokens_used}\n`);
+  }
 
   const validation = CounterArgOutputZod.safeParse(response.parsed);
   if (!validation.success) {

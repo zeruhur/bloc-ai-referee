@@ -93,6 +93,11 @@ export async function runStep1Matrix(
     temperature: campagna.llm.temperature_mechanical,
   });
 
+  if (response.tokens_used) {
+    await appendToRollsFile(app, slug, turno_corrente,
+      `\n> 🔢 Step1Matrix — modello: ${response.model}, token usati: ${response.tokens_used}\n`);
+  }
+
   const validation = MatrixOutputZod.safeParse(response.parsed);
   if (!validation.success) {
     throw new LLMValidationError(
