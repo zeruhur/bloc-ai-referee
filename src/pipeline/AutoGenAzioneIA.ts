@@ -43,7 +43,15 @@ export async function autoGenAzioneIA(
     temperature: campagna.llm.temperature_mechanical,
   });
 
-  const validation = ActionDeclOutputZod.safeParse(response.parsed);
+  const raw = response.parsed as Record<string, unknown>;
+  if (typeof raw?.metodo === 'string' && raw.metodo.length > 200) {
+    console.warn(
+      `[autoGenAzioneIA] metodo troncato per ${fazione.nome}: ${raw.metodo.length} → 200 caratteri`,
+    );
+    raw.metodo = raw.metodo.slice(0, 200);
+  }
+
+  const validation = ActionDeclOutputZod.safeParse(raw);
   if (!validation.success) {
     throw new LLMValidationError(
       `Output auto-gen IA non valido per ${fazione.nome}: ${validation.error.message}`,

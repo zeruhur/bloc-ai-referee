@@ -35,7 +35,7 @@ SVANTAGGI: ${fazione.svantaggi.join(', ')}
 
 Genera la dichiarazione di azione per questa fazione al turno ${campagna.meta.turno_corrente}.${tipoSection}
 - "azione": descrizione sintetica dell'azione (max 80 caratteri)
-- "metodo": come la fazione intende realizzarla (max 200 caratteri)
+- "metodo": come la fazione intende realizzarla — una frase secca, massimo 120 caratteri
 - "argomento_vantaggio": argomento in linguaggio naturale che motiva perché questa fazione ha le capacità e le condizioni per riuscire in questa azione specifica (sii specifico al contesto dell'azione, non generare un elenco di caratteristiche)`;
 
   return { system, user };
