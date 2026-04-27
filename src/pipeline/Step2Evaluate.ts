@@ -5,17 +5,22 @@ import type {
   DirectConflict,
   EvaluationOutput,
   LLMAdapter,
+  MatrixEntry,
   MatrixOutput,
 } from '../types';
 import { loadActionsForTurn, actionFilePath } from '../vault/ActionLoader';
 import { parseFrontmatter } from '../utils/yaml';
 import { patchActionFrontmatter, matrixFilePath, appendToRollsFile } from '../vault/VaultManager';
+import { readMatrixEntries, mergeMatrixEntries, writeMatrixFiles } from '../vault/MatrixWriter';
 import { patchCampagnaStato } from '../vault/CampaignWriter';
+import { markStepStarted, markStepCompleted, markRunFailed } from '../vault/RunStateManager';
 import { buildEvaluatePrompt } from './prompts/evaluatePrompt';
 import { evaluateOutputSchema, EvaluateOutputZod } from './schemas/evaluateSchema';
 import { LLMValidationError } from '../llm/LLMAdapter';
 import { getCompressedDeltas, getHistorySummary } from '../utils/contextWindow';
 import { Notice } from 'obsidian';
+
+const STEP_NAME = 'Step2Evaluate';
 
 export async function runStep2Evaluate(
   app: App,
@@ -37,48 +42,69 @@ export async function runStep2Evaluate(
     throw new Error('Nessuna dichiarazione azione trovata per questo turno.');
   }
 
-  const deltas = getCompressedDeltas(campagna.game_state_delta, campagna.llm.provider);
-  const historySummary = getHistorySummary(campagna.game_state_delta, campagna.llm.provider);
-  const evaluations: EvaluationOutput[] = [];
+  await markStepStarted(app, slug, turno_corrente, STEP_NAME);
 
-  for (let i = 0; i < actions.length; i++) {
-    const action = actions[i];
-    onProgress?.(i + 1, actions.length);
+  try {
+    const deltas = getCompressedDeltas(campagna.game_state_delta, campagna.llm.provider);
+    const historySummary = getHistorySummary(campagna.game_state_delta, campagna.llm.provider);
+    const evaluations: EvaluationOutput[] = [];
 
-    const { system, user } = buildEvaluatePrompt(campagna, matrice, action, deltas, historySummary);
+    for (let i = 0; i < actions.length; i++) {
+      const action = actions[i];
+      onProgress?.(i + 1, actions.length);
 
-    const response = await adapter.complete({
-      system,
-      user,
-      output_schema: evaluateOutputSchema,
-      temperature: campagna.llm.temperature_mechanical,
-    });
+      const { system, user } = buildEvaluatePrompt(campagna, matrice, action, deltas, historySummary);
 
-    if (response.tokens_used) {
-      await appendToRollsFile(app, slug, turno_corrente,
-        `\n> 🔢 Step2Evaluate (${action.fazione}) — modello: ${response.model}, token usati: ${response.tokens_used}\n`);
+      const response = await adapter.complete({
+        system,
+        user,
+        output_schema: evaluateOutputSchema,
+        temperature: campagna.llm.temperature_mechanical,
+      });
+
+      if (response.tokens_used) {
+        await appendToRollsFile(app, slug, turno_corrente,
+          `\n> 🔢 Step2Evaluate (${action.fazione}) — modello: ${response.model}, token usati: ${response.tokens_used}\n`);
+      }
+
+      const validation = EvaluateOutputZod.safeParse(response.parsed);
+      if (!validation.success) {
+        throw new LLMValidationError(
+          `Output valutazione non valido per ${action.fazione}: ${validation.error.message}`,
+          response.content,
+        );
+      }
+
+      const evaluation = validation.data;
+      evaluations.push(evaluation);
+
+      const filePath = actionFilePath(slug, turno_corrente, action.fazione);
+      await patchActionFrontmatter<AzioneDeclaration>(app, filePath, {
+        valutazione: evaluation,
+      } as any);
     }
 
-    const validation = EvaluateOutputZod.safeParse(response.parsed);
-    if (!validation.success) {
-      throw new LLMValidationError(
-        `Output valutazione non valido per ${action.fazione}: ${validation.error.message}`,
-        response.content,
-      );
-    }
+    // ---- Update matrix with valutazione ----
+    const { publicEntries, allEntries } = await readMatrixEntries(app, slug, turno_corrente);
+    const updates: Partial<MatrixEntry>[] = evaluations.map(ev => ({
+      fazione: ev.fazione,
+      valutazione: {
+        pool: ev.pool,
+        motivazione: ev.valutazione_vantaggio.motivazione,
+      },
+    }));
+    const updatedPublic = mergeMatrixEntries(publicEntries, updates);
+    const updatedAll = mergeMatrixEntries(allEntries, updates);
+    await writeMatrixFiles(app, slug, turno_corrente, updatedPublic, updatedAll, campagna.fazioni);
 
-    const evaluation = validation.data;
-    evaluations.push(evaluation);
+    await patchCampagnaStato(app, slug, 'valutazione');
+    await markStepCompleted(app, slug, turno_corrente, STEP_NAME, [matrixPath]);
 
-    const filePath = actionFilePath(slug, turno_corrente, action.fazione);
-    await patchActionFrontmatter<AzioneDeclaration>(app, filePath, {
-      valutazione: evaluation,
-    } as any);
+    return evaluations;
+  } catch (err) {
+    await markRunFailed(app, slug, turno_corrente, STEP_NAME, (err as Error).message);
+    throw err;
   }
-
-  await patchCampagnaStato(app, slug, 'valutazione');
-
-  return evaluations;
 }
 
 export function detectDirectConflicts(matrix: MatrixOutput): DirectConflict[] {

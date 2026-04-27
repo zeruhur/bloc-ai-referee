@@ -165,6 +165,17 @@ export interface MatrixEntry {
   metodo: string;
   argomento_vantaggio: string;
   conflitti_con: string[];
+  // Progressive fields added by subsequent pipeline steps
+  contro_argomentazione?: string;
+  valutazione?: {
+    pool: DicePool;
+    motivazione: string;
+  };
+  esito_tiro?: {
+    dadi: number[];
+    risultato: number;
+    esito: Esito;
+  };
 }
 
 export interface MatrixOutput {

@@ -2,6 +2,7 @@ import type { App } from 'obsidian';
 import type {
   Campagna,
   EvaluationOutput,
+  FazioneConfig,
   LLMAdapter,
   MatrixOutput,
   NarrativeOutput,
@@ -21,6 +22,7 @@ import { narrativeOutputSchema, NarrativeOutputZod } from './schemas/narrativeSc
 import { LLMValidationError } from '../llm/LLMAdapter';
 import { getCompressedDeltas, getHistorySummary } from '../utils/contextWindow';
 import { markdownSection } from '../utils/markdown';
+import { buildFactionNameMap, replaceFactionIds, resolveFactionName } from '../utils/factionUtils';
 import { ESITO_LABELS } from '../constants';
 
 export async function runStep3Narrative(
@@ -77,6 +79,26 @@ export async function runStep3Narrative(
 
   const narrative = validation.data;
 
+  // ---- FIX 2: normalise faction references ----
+  // Ensure fazione fields are IDs (LLM may return names if it misread the prompt)
+  const nameToId = Object.fromEntries(campagna.fazioni.map(f => [f.nome, f.id]));
+  for (const c of narrative.conseguenze) {
+    if (!campagna.fazioni.find(f => f.id === c.fazione)) {
+      const resolved = nameToId[c.fazione];
+      if (resolved) c.fazione = resolved;
+    }
+  }
+
+  // Replace faction IDs with human-readable names in text-only fields
+  const nameMap = buildFactionNameMap(campagna.fazioni);
+  for (const c of narrative.conseguenze) {
+    c.testo_conseguenza = replaceFactionIds(c.testo_conseguenza, nameMap);
+  }
+  narrative.eventi_turno = narrative.eventi_turno.map(e => replaceFactionIds(e, nameMap));
+  narrative.narrative_seed_prossimo_turno = replaceFactionIds(
+    narrative.narrative_seed_prossimo_turno, nameMap,
+  );
+
   // Update MC for each faction
   for (const conseguenza of narrative.conseguenze) {
     if (conseguenza.state_delta.mc_delta !== 0) {
@@ -101,7 +123,7 @@ export async function runStep3Narrative(
   });
 
   // Write human-readable narrative file
-  const narrativeBody = buildNarrativeBody(narrative, turno_corrente);
+  const narrativeBody = buildNarrativeBody(narrative, turno_corrente, campagna.fazioni);
   await app.vault.adapter.write(outPath, buildFileWithFrontmatter(narrative, narrativeBody));
 
   await patchCampagnaStato(app, slug, 'review');
@@ -109,11 +131,16 @@ export async function runStep3Narrative(
   return narrative;
 }
 
-function buildNarrativeBody(narrative: NarrativeOutput, turno: number): string {
+function buildNarrativeBody(
+  narrative: NarrativeOutput,
+  turno: number,
+  fazioni: FazioneConfig[],
+): string {
   const sections = narrative.conseguenze.map(c => {
     const esito = ESITO_LABELS[c.esito] ?? c.esito;
+    const nomeFazione = resolveFactionName(c.fazione, fazioni);
     return markdownSection(
-      `${c.fazione} — ${c.azione}`,
+      `${nomeFazione} — ${c.azione}`,
       2,
       `**Esito**: ${esito}\n\n${c.testo_conseguenza}`,
     );

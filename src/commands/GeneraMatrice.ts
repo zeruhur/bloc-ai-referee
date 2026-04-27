@@ -4,9 +4,12 @@ import type BlocPlugin from '../main';
 import { loadActiveCampagna } from './shared';
 import { createAdapter } from '../llm/LLMAdapter';
 import { runStep1Matrix } from '../pipeline/Step1Matrix';
-import { confirmOverwrite } from '../ui/modals/ConfirmOverwriteModal';
+import { confirmOverwrite, confirmDialog } from '../ui/modals/ConfirmOverwriteModal';
+import { loadRunState } from '../vault/RunStateManager';
 import { countActionsForTurn } from '../vault/ActionLoader';
 import { MATRIX_FILE } from '../constants';
+
+const STEP_NAME = 'Step1Matrix';
 
 export async function cmdGeneraMatrice(app: App, plugin: BlocPlugin): Promise<void> {
   const campagna = await loadActiveCampagna(app, plugin);
@@ -21,6 +24,19 @@ export async function cmdGeneraMatrice(app: App, plugin: BlocPlugin): Promise<vo
   if (actionCount === 0) {
     new Notice('Nessuna azione dichiarata per questo turno.');
     return;
+  }
+
+  // ---- Run state check ----
+  const { slug, turno_corrente } = campagna.meta;
+  const runState = await loadRunState(app, slug, turno_corrente);
+  if (runState?.status === 'failed' && runState.current_step === STEP_NAME) {
+    const retry = await confirmDialog(
+      app,
+      'Esecuzione precedente fallita',
+      `Il passaggio ${STEP_NAME} è fallito: ${runState.last_error ?? 'errore sconosciuto'}. Ripetere?`,
+      'Riprova',
+    );
+    if (!retry) return;
   }
 
   const adapter = await createAdapter(campagna.llm, app);

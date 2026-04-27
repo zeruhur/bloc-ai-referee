@@ -39,6 +39,7 @@ export const ARBITER_MATRIX_FILE = 'matrice-arbitro.md';
 export const ROLLS_FILE = 'tiri.md';
 export const NARRATIVE_FILE = 'narrativa.md';
 export const ORACLE_FILE = 'oracolo.md';
+export const RUN_STATE_FILE = 'run-state.yaml';
 export const LATENT_SUFFIX = '-latenti.yaml';
 export const TURN_FOLDER_PREFIX = 'turno-';
 export const CAMPAGNA_ACCORDI_PUBBLICI_FILE = 'campagna-accordi-pubblici.yaml';
