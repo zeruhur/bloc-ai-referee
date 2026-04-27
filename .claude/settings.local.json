@@ -3,7 +3,8 @@
     "allow": [
       "Bash(xargs grep *)",
       "Bash(npm install *)",
-      "Bash(node_modules/.bin/vitest run *)"
+      "Bash(node_modules/.bin/vitest run *)",
+      "Bash(npm test *)"
     ]
   }
 }
