@@ -19,8 +19,9 @@ const campagnaFixture: Campagna = {
       id: 'draghi',
       nome: 'Draghi delle Montagne',
       mc: 0,
-      vantaggi: [{ id: 'mobilita_aerea', label: 'Mobilità aerea' }],
-      svantaggio: { id: 'isolamento', label: 'Isolamento diplomatico' },
+      concetto: 'Antichi guardiani alati delle vette settentrionali',
+      vantaggi: ['Mobilità aerea', 'Resistenza al fuoco'],
+      svantaggi: ['Isolamento diplomatico'],
       obiettivo: 'Proteggere le montagne',
       leader: { presente: true },
     },
@@ -40,12 +41,11 @@ const actionFixture: AzioneDeclaration = {
   giocatore: '@player1',
   turno: 2,
   tipo_azione: 'principale',
+  categoria_azione: 'standard',
   azione: 'Attaccare il rituale nemico',
   metodo: 'Assalto aereo dalla vetta nord con supporto valanghe',
-  vantaggi_usati: ['mobilita_aerea'],
-  svantaggi_opposti: [],
-  svantaggi_propri_attivati: [],
-  aiuti_alleati: [],
+  argomento_vantaggio: 'I draghi possono raggiungere il sito del rituale con un attacco aereo fulmineo sfruttando la mobilità aerea superiore',
+  argomenti_contro: [],
   dettaglio_narrativo: 'QUESTO NON DEVE APPARIRE NEL PROMPT LLM',
 };
 
@@ -54,7 +54,7 @@ const matrixFixture: MatrixOutput = {
     fazione: 'draghi',
     azione: 'Attaccare il rituale nemico',
     metodo: 'Assalto aereo',
-    vantaggi: ['mobilita_aerea'],
+    argomento_vantaggio: 'Mobilità aerea superiore consente attacco fulmineo',
     conflitti_con: [],
   }],
 };
@@ -91,6 +91,13 @@ describe('buildMatrixPrompt', () => {
     const { system } = buildMatrixPrompt(campagnaFixture, [actionFixture], []);
     expect(system).not.toContain('STORIA RECENTE');
   });
+
+  it('includes faction concetto and vantaggi in user prompt', () => {
+    const { user } = buildMatrixPrompt(campagnaFixture, [actionFixture], []);
+    expect(user).toContain('Mobilità aerea');
+    expect(user).toContain('Isolamento diplomatico');
+    expect(user).toContain('Antichi guardiani');
+  });
 });
 
 describe('buildEvaluatePrompt', () => {
@@ -99,9 +106,9 @@ describe('buildEvaluatePrompt', () => {
     expect(system).toContain('draghi');
   });
 
-  it('includes the action in user prompt', () => {
+  it('includes the argomento_vantaggio in user prompt', () => {
     const { user } = buildEvaluatePrompt(campagnaFixture, matrixFixture, actionFixture, []);
-    expect(user).toContain('mobilita_aerea');
+    expect(user).toContain('mobilità aerea superiore');
   });
 
   it('does NOT include dettaglio_narrativo', () => {
@@ -109,17 +116,21 @@ describe('buildEvaluatePrompt', () => {
     expect(system).not.toContain('QUESTO NON DEVE APPARIRE NEL PROMPT LLM');
     expect(user).not.toContain('QUESTO NON DEVE APPARIRE NEL PROMPT LLM');
   });
+
+  it('includes LINEE GUIDA ARBITRO in system prompt', () => {
+    const { system } = buildEvaluatePrompt(campagnaFixture, matrixFixture, actionFixture, []);
+    expect(system).toContain('LINEE GUIDA ARBITRO');
+    expect(system).toContain('Plausibilità narrativa');
+  });
 });
 
 describe('buildNarrativePrompt', () => {
   const evalFixture: EvaluationOutput = {
     fazione: 'draghi',
     azione: 'Attaccare il rituale nemico',
-    vantaggi_confermati: ['mobilita_aerea'],
-    vantaggi_ridotti: [],
-    vantaggi_negati: [],
-    svantaggi_attivati: [],
-    pool: { positivi: 1, negativi: 0, netto: 1, modalita: 'alto' },
+    valutazione_vantaggio: { peso: 2, motivazione: 'Mobilità aerea pertinente e ben argomentata' },
+    valutazioni_contro: [],
+    pool: { positivi: 2, negativi: 0, netto: 2, modalita: 'alto' },
   };
 
   const rollFixture: RollResult = {
@@ -137,6 +148,6 @@ describe('buildNarrativePrompt', () => {
 
   it('includes evaluation data', () => {
     const { user } = buildNarrativePrompt(campagnaFixture, matrixFixture, [rollFixture], [evalFixture], []);
-    expect(user).toContain('mobilita_aerea');
+    expect(user).toContain('draghi');
   });
 });

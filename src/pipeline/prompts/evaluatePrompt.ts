@@ -25,7 +25,13 @@ MATRICE TURNO CORRENTE:
 ${stringifyYaml(matrice)}
 
 PROFILI FAZIONI:
-${campagna.fazioni.map(f => `- ${f.id} (${f.nome}): ${f.profilo}`).join('\n')}
+${campagna.fazioni.map(f => `- ${f.id} (${f.nome}):\n  Concetto: ${f.concetto}\n  Vantaggi: ${f.vantaggi.join(', ')}\n  Svantaggi: ${f.svantaggi.join(', ')}`).join('\n')}
+
+LINEE GUIDA ARBITRO:
+1. Plausibilità narrativa: l'argomento è coerente con l'ambientazione, il concetto della fazione e gli eventi precedenti?
+2. Rilevanza vantaggi/svantaggi: i vantaggi sono specifici per questa azione? Un vantaggio generico in un contesto irrilevante vale meno di uno pertinente e contestuale.
+3. Creatività premiata: argomenti ben sviluppati, specifici e narrativamente ricchi meritano pesi più alti.
+4. Incoerenze logiche: se un argomento contraddice il contesto o le azioni dichiarate, riduci il peso di conseguenza.
 
 Il tuo compito è valutare la forza degli argomenti dichiarati per questa azione e calcolare il pool di dadi risultante. Rispondi SOLO con il JSON richiesto.`;
 

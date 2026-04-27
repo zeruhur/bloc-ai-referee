@@ -73,6 +73,13 @@ export function rollIAConflictOutcome(seed?: number): { seed: number; dado: numb
   return { seed: usedSeed, dado, risultato };
 }
 
+export function rollFudge(seed?: number): { seed: number; risultato: MC } {
+  const usedSeed = seed ?? Date.now();
+  const n = Math.floor(seededRandom(usedSeed) * 3); // 0, 1, or 2
+  const risultato = (n - 1) as MC; // 0→-1, 1→0, 2→+1
+  return { seed: usedSeed, risultato };
+}
+
 export interface DirectConflictResult {
   attacker: RollResult;
   defender: RollResult;

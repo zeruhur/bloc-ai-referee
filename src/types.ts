@@ -42,7 +42,8 @@ export type CampagnaStato =
   | 'chiuso';
 
 export type LLMProvider = 'google_ai_studio' | 'ollama' | 'openai' | 'anthropic' | 'openrouter';
-export type TipoAzione = 'principale' | 'leader' | 'latente' | 'difesa';
+export type TipoAzione = 'principale' | 'leader';
+export type CategoriaAzione = 'standard' | 'latente' | 'difesa' | 'aiuto' | 'segreta';
 export type TipoFazione = 'normale' | 'ia';
 export type Esito = 'no_e' | 'no' | 'no_ma' | 'si_ma' | 'si' | 'si_e';
 export type Modalita = 'alto' | 'basso' | 'neutro';
@@ -56,8 +57,9 @@ export interface FazioneConfig {
   mc: MC;
   tipo?: TipoFazione;
   obiettivo: string;
-  /** Free-form description of the faction's capabilities, strengths and weaknesses. */
-  profilo: string;
+  concetto: string;
+  vantaggi: string[];
+  svantaggi: string[];
   leader?: { nome?: string; presente: boolean };
 }
 
@@ -83,6 +85,9 @@ export interface Campagna {
     turno_corrente: number;
     turno_totale: number;
     stato: CampagnaStato;
+    livello_operativo?: string;
+    distribuzione_temporale?: 'lineare' | 'non_lineare';
+    intervallo_temporale?: string;
   };
   premessa: string;
   llm: LLMConfig;
@@ -102,12 +107,14 @@ export interface AzioneDeclaration {
   giocatore: string;
   turno: number;
   tipo_azione: TipoAzione;
+  categoria_azione: CategoriaAzione;
   azione: string;
   metodo: string;
   /** Free-form argument for why this action should succeed. */
   argomento_vantaggio: string;
   /** Counter-arguments from opponent factions — filled at Checkpoint 1. */
   argomenti_contro: ArgomentoContro[];
+  fazione_aiutata?: string;
   dettaglio_narrativo?: string;
   azione_extra?: boolean;
   valutazione?: EvaluationOutput;

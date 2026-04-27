@@ -1,12 +1,14 @@
 import { App, Modal, Notice, Setting } from 'obsidian';
-import type { AzioneDeclaration, Campagna, FazioneConfig, TipoAzione } from '../../types';
+import type { AzioneDeclaration, Campagna, CategoriaAzione, FazioneConfig, TipoAzione } from '../../types';
 import { writeActionFile } from '../../vault/VaultManager';
 import { leaderAvailability } from '../../dice/DiceEngine';
 import { appendToRollsFile } from '../../vault/VaultManager';
 
 export class DichiaraAzioneModal extends Modal {
-  private declaration: Partial<AzioneDeclaration> = {
+  private declaration: Partial<AzioneDeclaration> & { categoria_azione: CategoriaAzione } = {
     argomenti_contro: [],
+    tipo_azione: 'principale',
+    categoria_azione: 'standard',
   };
   private selectedFazione: FazioneConfig | null = null;
 
@@ -19,10 +21,14 @@ export class DichiaraAzioneModal extends Modal {
   }
 
   onOpen(): void {
+    this.renderForm();
+  }
+
+  private renderForm(): void {
     const { contentEl } = this;
+    contentEl.empty();
     contentEl.createEl('h2', { text: `Dichiara azione — Turno ${this.campagna.meta.turno_corrente}` });
 
-    // Faction selector — exclude IA factions (auto-generated)
     const fazionUmane = this.campagna.fazioni.filter(f => f.tipo !== 'ia');
 
     new Setting(contentEl)
@@ -50,9 +56,47 @@ export class DichiaraAzioneModal extends Modal {
       .addDropdown(d => d
         .addOption('principale', 'Principale')
         .addOption('leader', 'Leader')
+        .setValue(this.declaration.tipo_azione ?? 'principale')
+        .onChange(v => { this.declaration.tipo_azione = v as TipoAzione; }));
+
+    new Setting(contentEl)
+      .setName('Categoria azione')
+      .addDropdown(d => d
+        .addOption('standard', 'Standard')
         .addOption('latente', 'Latente')
         .addOption('difesa', 'Difesa')
-        .onChange(v => { this.declaration.tipo_azione = v as TipoAzione; }));
+        .addOption('aiuto', 'Aiuto')
+        .addOption('segreta', 'Segreta')
+        .setValue(this.declaration.categoria_azione)
+        .onChange(v => {
+          this.declaration.categoria_azione = v as CategoriaAzione;
+          this.renderForm();
+        }));
+
+    // Conditional section for 'aiuto'
+    if (this.declaration.categoria_azione === 'aiuto') {
+      const altreFazioni = this.campagna.fazioni.filter(f => f.id !== this.declaration.fazione);
+      new Setting(contentEl)
+        .setName('Fazione aiutata')
+        .addDropdown(d => {
+          altreFazioni.forEach(f => d.addOption(f.id, f.nome));
+          if (altreFazioni[0]) {
+            d.setValue(this.declaration.fazione_aiutata ?? altreFazioni[0].id);
+            this.declaration.fazione_aiutata = this.declaration.fazione_aiutata ?? altreFazioni[0].id;
+          }
+          d.onChange(v => { this.declaration.fazione_aiutata = v; });
+        });
+    }
+
+    // Conditional note for 'segreta' and 'latente'
+    if (this.declaration.categoria_azione === 'segreta' || this.declaration.categoria_azione === 'latente') {
+      contentEl.createEl('p', {
+        text: this.declaration.categoria_azione === 'segreta'
+          ? 'Azione segreta: salvata fuori dal pipeline del turno corrente (come latente). Attivazione futura con "Attiva azione latente".'
+          : 'Azione latente: salvata fuori dal turno corrente. Attivare in futuro con "Attiva azione latente".',
+        cls: 'setting-item-description',
+      });
+    }
 
     new Setting(contentEl)
       .setName('Azione (max 80 car.)')
@@ -86,6 +130,11 @@ export class DichiaraAzioneModal extends Modal {
       return;
     }
 
+    if (declaration.categoria_azione === 'aiuto' && !declaration.fazione_aiutata) {
+      new Notice('Seleziona la fazione aiutata.');
+      return;
+    }
+
     // Leader availability check
     if (declaration.tipo_azione === 'leader') {
       const fazione = campagna.fazioni.find(f => f.id === declaration.fazione);
@@ -108,10 +157,12 @@ export class DichiaraAzioneModal extends Modal {
       giocatore: declaration.giocatore ?? 'Arbitro',
       turno: campagna.meta.turno_corrente,
       tipo_azione: declaration.tipo_azione ?? 'principale',
+      categoria_azione: declaration.categoria_azione,
       azione: declaration.azione!,
       metodo: declaration.metodo!,
       argomento_vantaggio: declaration.argomento_vantaggio!,
       argomenti_contro: [],
+      fazione_aiutata: declaration.fazione_aiutata,
       dettaglio_narrativo: declaration.dettaglio_narrativo,
     };
 

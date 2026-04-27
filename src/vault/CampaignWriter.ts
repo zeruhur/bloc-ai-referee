@@ -52,6 +52,21 @@ export async function patchFazioneLeader(
   await writeRaw(app, slug, data);
 }
 
+export async function patchFazioneLeaderData(
+  app: App,
+  slug: string,
+  fazioneId: string,
+  leader: { nome: string; presente: boolean },
+): Promise<void> {
+  const data = await readRaw(app, slug);
+  const fazioni = data['fazioni'] as Array<Record<string, unknown>>;
+  const fazione = fazioni.find(f => f['id'] === fazioneId);
+  if (fazione) {
+    fazione['leader'] = leader;
+  }
+  await writeRaw(app, slug, data);
+}
+
 export async function patchFazioneMC(
   app: App,
   slug: string,

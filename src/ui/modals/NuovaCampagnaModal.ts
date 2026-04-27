@@ -1,7 +1,8 @@
 import { App, Modal, Notice, Setting } from 'obsidian';
-import type { Campagna, FazioneConfig, LLMProvider } from '../../types';
+import type { Campagna, FazioneConfig, LLMProvider, MC, TipoFazione } from '../../types';
 import { PROVIDER_LABELS } from '../../constants';
 import { writeCampaignFile, writeFactionFile } from '../../vault/VaultManager';
+import { rollFudge } from '../../dice/DiceEngine';
 import { slugify } from '../../utils/slugify';
 import type BlocPlugin from '../../main';
 
@@ -13,20 +14,30 @@ const PROVIDER_ORDER: LLMProvider[] = [
   'ollama',
 ];
 
+interface WizardFazione {
+  id: string;
+  nome: string;
+  obiettivo: string;
+  concetto: string;
+  vantaggio1: string;
+  vantaggio2: string;
+  svantaggio1: string;
+  mc: MC;
+  tipo: TipoFazione;
+  nomeLeader?: string;
+}
+
 interface WizardState {
   titolo: string;
   slug: string;
   turno_totale: number;
   premessa: string;
+  livello_operativo: string;
+  distribuzione_temporale: 'lineare' | 'non_lineare';
+  intervallo_temporale: string;
   provider: LLMProvider;
   model: string;
-  fazioni: Array<{
-    id: string;
-    nome: string;
-    obiettivo: string;
-    profilo: string;
-    nomeLeader?: string;
-  }>;
+  fazioni: WizardFazione[];
 }
 
 export class NuovaCampagnaModal extends Modal {
@@ -47,6 +58,9 @@ export class NuovaCampagnaModal extends Modal {
       slug: '',
       turno_totale: 10,
       premessa: '',
+      livello_operativo: '',
+      distribuzione_temporale: 'lineare',
+      intervallo_temporale: '',
       provider,
       model,
       fazioni: [],
@@ -97,6 +111,30 @@ export class NuovaCampagnaModal extends Modal {
         .setValue(this.state.premessa)
         .onChange(v => { this.state.premessa = v.slice(0, 500); }));
 
+    new Setting(contentEl)
+      .setName('Livello operativo')
+      .setDesc('Es. Nazione, Grande org., Piccola org., Gruppo')
+      .addText(t => t
+        .setPlaceholder('es. Nazione')
+        .setValue(this.state.livello_operativo)
+        .onChange(v => { this.state.livello_operativo = v; }));
+
+    new Setting(contentEl)
+      .setName('Distribuzione temporale')
+      .addDropdown(d => d
+        .addOption('lineare', 'Lineare')
+        .addOption('non_lineare', 'Non lineare')
+        .setValue(this.state.distribuzione_temporale)
+        .onChange(v => { this.state.distribuzione_temporale = v as 'lineare' | 'non_lineare'; }));
+
+    new Setting(contentEl)
+      .setName('Intervallo temporale')
+      .setDesc('Tipologia e distribuzione degli intervalli temporali tra i turni.')
+      .addText(t => t
+        .setPlaceholder('es. ogni turno rappresenta un mese')
+        .setValue(this.state.intervallo_temporale)
+        .onChange(v => { this.state.intervallo_temporale = v; }));
+
     this.renderNavButtons(false, true);
   }
 
@@ -104,7 +142,6 @@ export class NuovaCampagnaModal extends Modal {
     const { contentEl } = this;
     contentEl.createEl('h2', { text: 'Nuova campagna — Passo 2/3: Modello AI' });
 
-    // Provider dropdown
     new Setting(contentEl)
       .setName('Provider')
       .addDropdown(d => {
@@ -119,7 +156,6 @@ export class NuovaCampagnaModal extends Modal {
         });
       });
 
-    // Model dropdown from cached list
     const models = this.plugin.settings.cachedModels?.[this.state.provider] ?? [];
 
     if (models.length > 0) {
@@ -140,7 +176,6 @@ export class NuovaCampagnaModal extends Modal {
           .onChange(v => { this.state.model = v.trim(); }));
     }
 
-    // Key status hint
     const hasKey = !!(this.plugin.settings.apiKeys?.[this.state.provider]);
     const isOllama = this.state.provider === 'ollama';
     if (!hasKey && !isOllama) {
@@ -170,14 +205,50 @@ export class NuovaCampagnaModal extends Modal {
       new Setting(box).setName('Nome').addText(t => t
         .setValue(f.nome)
         .onChange(v => { f.nome = v; f.id = slugify(v); }));
+
       new Setting(box).setName('Obiettivo').addText(t => t
         .setValue(f.obiettivo)
         .onChange(v => { f.obiettivo = v; }));
-      new Setting(box).setName('Profilo')
-        .setDesc('Capacità, punti di forza e debolezze tipiche — usato come contesto per l\'LLM.')
+
+      new Setting(box).setName('Concetto')
+        .setDesc('Descrizione sintetica dell\'identità, scopo e natura della fazione.')
         .addTextArea(t => t
-          .setValue(f.profilo)
-          .onChange(v => { f.profilo = v; }));
+          .setValue(f.concetto)
+          .onChange(v => { f.concetto = v; }));
+
+      new Setting(box).setName('Vantaggio 1').addText(t => t
+        .setPlaceholder('es. Flotta navale superiore')
+        .setValue(f.vantaggio1)
+        .onChange(v => { f.vantaggio1 = v; }));
+
+      new Setting(box).setName('Vantaggio 2').addText(t => t
+        .setPlaceholder('es. Rete di spionaggio capillare')
+        .setValue(f.vantaggio2)
+        .onChange(v => { f.vantaggio2 = v; }));
+
+      new Setting(box).setName('Svantaggio').addText(t => t
+        .setPlaceholder('es. Isolamento diplomatico')
+        .setValue(f.svantaggio1)
+        .onChange(v => { f.svantaggio1 = v; }));
+
+      // MC row: display + roll button
+      const mcSetting = new Setting(box)
+        .setName('Modificatore di Coesione (MC)')
+        .setDesc(`Valore attuale: ${f.mc}`);
+      mcSetting.addButton(btn => btn
+        .setButtonText('Tira MC')
+        .onClick(() => {
+          const roll = rollFudge();
+          f.mc = roll.risultato;
+          mcSetting.setDesc(`Valore attuale: ${f.mc > 0 ? '+' : ''}${f.mc}`);
+        }));
+
+      new Setting(box)
+        .setName('Fazione IA')
+        .setDesc('Attiva se la fazione è controllata dall\'IA (azioni auto-generate).')
+        .addToggle(t => t
+          .setValue(f.tipo === 'ia')
+          .onChange(v => { f.tipo = v ? 'ia' : 'normale'; }));
 
       new Setting(box)
         .setName('Nome leader (opzionale)')
@@ -200,7 +271,12 @@ export class NuovaCampagnaModal extends Modal {
         id: '',
         nome: '',
         obiettivo: '',
-        profilo: '',
+        concetto: '',
+        vantaggio1: '',
+        vantaggio2: '',
+        svantaggio1: '',
+        mc: 0,
+        tipo: 'normale',
       });
       this.renderStep();
     });
@@ -244,6 +320,9 @@ export class NuovaCampagnaModal extends Modal {
           turno_corrente: 1,
           turno_totale: this.state.turno_totale,
           stato: 'raccolta',
+          livello_operativo: this.state.livello_operativo || undefined,
+          distribuzione_temporale: this.state.distribuzione_temporale,
+          intervallo_temporale: this.state.intervallo_temporale || undefined,
         },
         premessa: this.state.premessa,
         llm: {
@@ -255,9 +334,12 @@ export class NuovaCampagnaModal extends Modal {
         fazioni: this.state.fazioni.map(f => ({
           id: f.id,
           nome: f.nome,
-          mc: 0,
+          mc: f.mc,
+          tipo: f.tipo,
           obiettivo: f.obiettivo,
-          profilo: f.profilo,
+          concetto: f.concetto,
+          vantaggi: [f.vantaggio1, f.vantaggio2].filter(v => v.trim() !== ''),
+          svantaggi: [f.svantaggio1].filter(v => v.trim() !== ''),
           leader: f.nomeLeader ? { nome: f.nomeLeader, presente: true } : undefined,
         })) as FazioneConfig[],
         game_state_delta: [],

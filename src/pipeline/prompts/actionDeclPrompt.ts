@@ -29,7 +29,9 @@ Il tuo compito è generare la dichiarazione di azione per una fazione controllat
 
   const user = `FAZIONE: ${fazione.nome} (ID: ${fazione.id})
 OBIETTIVO: ${fazione.obiettivo}
-PROFILO: ${fazione.profilo}
+CONCETTO: ${fazione.concetto}
+VANTAGGI: ${fazione.vantaggi.join(', ')}
+SVANTAGGI: ${fazione.svantaggi.join(', ')}
 
 Genera la dichiarazione di azione per questa fazione al turno ${campagna.meta.turno_corrente}.${tipoSection}
 - "azione": descrizione sintetica dell'azione (max 80 caratteri)

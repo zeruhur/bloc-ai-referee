@@ -30,7 +30,7 @@ Il tuo compito è analizzare le dichiarazioni di azione delle fazioni e produrre
 ${stringifyYaml(llmActions)}
 
 PROFILI FAZIONI:
-${campagna.fazioni.map(f => `- ${f.id} (${f.nome}): ${f.profilo}`).join('\n')}
+${campagna.fazioni.map(f => `- ${f.id} (${f.nome}):\n  Concetto: ${f.concetto}\n  Vantaggi: ${f.vantaggi.join(', ')}\n  Svantaggi: ${f.svantaggi.join(', ')}`).join('\n')}
 
 Genera la matrice delle azioni. Per ogni fazione indica:
 - azione dichiarata e metodo sintetico

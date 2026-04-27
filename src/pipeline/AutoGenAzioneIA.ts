@@ -58,6 +58,7 @@ export async function autoGenAzioneIA(
     giocatore: 'IA',
     turno: turno_corrente,
     tipo_azione: 'principale',
+    categoria_azione: 'standard',
     azione,
     metodo,
     argomento_vantaggio,

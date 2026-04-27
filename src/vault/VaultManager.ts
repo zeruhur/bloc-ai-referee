@@ -60,7 +60,7 @@ export async function writeActionFile(
   turno: number,
   action: AzioneDeclaration,
 ): Promise<void> {
-  if (action.tipo_azione === 'latente') {
+  if (action.categoria_azione === 'latente' || action.categoria_azione === 'segreta') {
     await saveLatentAction(app, slug, action.fazione, action);
     return;
   }

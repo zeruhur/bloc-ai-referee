@@ -24,7 +24,7 @@ ${campagna.premessa}${deltaContext}
 Il tuo compito è determinare quali fazioni avversarie avrebbero buone ragioni contestuali per opporsi all'azione altrui, e quale argomento specifico produrrebbero. Rispondi SOLO con il JSON richiesto.`;
 
   const profiliFazioni = campagna.fazioni
-    .map(f => `- ${f.id} (${f.nome}): ${f.profilo}`)
+    .map(f => `- ${f.id} (${f.nome}):\n  Concetto: ${f.concetto}\n  Vantaggi: ${f.vantaggi.join(', ')}\n  Svantaggi: ${f.svantaggi.join(', ')}`)
     .join('\n');
 
   // Strip narrative fields

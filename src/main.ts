@@ -18,6 +18,7 @@ import { cmdInterrogaOracolo } from './commands/InterrogaOracolo';
 import { cmdVerificaLeader } from './commands/VerificaLeader';
 import { cmdEliminaLeader } from './commands/EliminaLeader';
 import { cmdRegistraAccordoPrivato } from './commands/RegistraAccordoPrivato';
+import { cmdGeneraLeader } from './commands/GeneraLeader';
 
 export default class BlocPlugin extends Plugin {
   settings: BlocPluginSettings = DEFAULT_SETTINGS;
@@ -115,6 +116,12 @@ export default class BlocPlugin extends Plugin {
       id: 'registra-accordo-privato',
       name: 'BLOC: Registra accordo privato',
       callback: () => cmdRegistraAccordoPrivato(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'genera-leader',
+      name: 'BLOC: Genera leader fazione',
+      callback: () => cmdGeneraLeader(this.app, this),
     });
   }
 
