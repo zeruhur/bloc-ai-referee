@@ -175,4 +175,4 @@ Wave 9                      (comando nuovo)
 Wave 10                     (test last, dopo che tutto compila)
 ```
 
-Al termine aggiorna READM.md e GUIDA_UTENTE.md
+Al termine aggiorna README.md e GUIDA_UTENTE.md
