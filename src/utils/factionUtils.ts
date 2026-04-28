@@ -19,3 +19,7 @@ export function replaceFactionIds(text: string, nameMap: Record<string, string>)
 export function activeFazioni(fazioni: FazioneConfig[]): FazioneConfig[] {
   return fazioni.filter(f => !f.eliminata);
 }
+
+export function declaringFazioni(fazioni: FazioneConfig[]): FazioneConfig[] {
+  return fazioni.filter(f => !f.eliminata && !f.sospesa);
+}

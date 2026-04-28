@@ -6,7 +6,7 @@ import { loadActiveCampagna } from './shared';
 import { createAdapter } from '../llm/LLMAdapter';
 import { autoGenAzioneIA } from '../pipeline/AutoGenAzioneIA';
 import { actionFilePath, fileExists } from '../vault/VaultManager';
-import { activeFazioni } from '../utils/factionUtils';
+import { declaringFazioni } from '../utils/factionUtils';
 
 export async function cmdDichiaraAzione(app: App, plugin: BlocPlugin): Promise<void> {
   const campagna = await loadActiveCampagna(app, plugin);
@@ -17,7 +17,7 @@ export async function cmdDichiaraAzione(app: App, plugin: BlocPlugin): Promise<v
     return;
   }
 
-  const fazioni = activeFazioni(campagna.fazioni);
+  const fazioni = declaringFazioni(campagna.fazioni);
   const fazionIA = fazioni.filter(f => f.tipo === 'ia');
   const fazionUmane = fazioni.filter(f => f.tipo !== 'ia');
 

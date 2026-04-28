@@ -24,6 +24,12 @@ import { cmdSciogliAccordo } from './commands/SciogliAccordo';
 import { cmdGeneraLeader } from './commands/GeneraLeader';
 import { cmdEliminaFazione, cmdRipristinaFazione } from './commands/EliminaFazione';
 import { cmdConvertiAIA, cmdConvertiAUmano } from './commands/ConvertiControlloFazione';
+import { cmdModificaFazione } from './commands/ModificaFazione';
+import { cmdSospendiFazione, cmdRiattivaSospesa } from './commands/SospendiFazione';
+import { cmdModificaVantaggi } from './commands/ModificaVantaggi';
+import { cmdFondiFazioni } from './commands/FondiFazioni';
+import { cmdAggiungiNuovaFazione } from './commands/AggiungiNuovaFazione';
+import { cmdScissioneFazione } from './commands/ScissioneFazione';
 
 export default class BlocPlugin extends Plugin {
   settings: BlocPluginSettings = DEFAULT_SETTINGS;
@@ -139,6 +145,48 @@ export default class BlocPlugin extends Plugin {
       id: 'converti-a-umano',
       name: 'BLOC: Converti fazione a controllo umano',
       callback: () => cmdConvertiAUmano(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'modifica-fazione',
+      name: 'BLOC: Modifica profilo fazione',
+      callback: () => cmdModificaFazione(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'sospendi-fazione',
+      name: 'BLOC: Sospendi fazione',
+      callback: () => cmdSospendiFazione(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'riattiva-fazione',
+      name: 'BLOC: Riattiva fazione sospesa',
+      callback: () => cmdRiattivaSospesa(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'modifica-vantaggi-fazione',
+      name: 'BLOC: Modifica vantaggi fazione',
+      callback: () => cmdModificaVantaggi(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'fondi-fazioni',
+      name: 'BLOC: Fondi fazioni',
+      callback: () => cmdFondiFazioni(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'aggiungi-nuova-fazione',
+      name: 'BLOC: Aggiungi nuova fazione',
+      callback: () => cmdAggiungiNuovaFazione(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'scindi-fazione',
+      name: 'BLOC: Scindi fazione',
+      callback: () => cmdScissioneFazione(this.app, this),
     });
 
     this.addCommand({

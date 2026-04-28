@@ -3,7 +3,7 @@ import type { AzioneDeclaration, Campagna, CategoriaAzione, FazioneConfig, TipoA
 import { writeActionFile } from '../../vault/VaultManager';
 import { leaderAvailability } from '../../dice/DiceEngine';
 import { appendToRollsFile } from '../../vault/VaultManager';
-import { activeFazioni } from '../../utils/factionUtils';
+import { declaringFazioni } from '../../utils/factionUtils';
 
 export class DichiaraAzioneModal extends Modal {
   private declaration: Partial<AzioneDeclaration> & { categoria_azione: CategoriaAzione } = {
@@ -30,7 +30,7 @@ export class DichiaraAzioneModal extends Modal {
     contentEl.empty();
     contentEl.createEl('h2', { text: `Dichiara azione — Turno ${this.campagna.meta.turno_corrente}` });
 
-    const fazionUmane = activeFazioni(this.campagna.fazioni).filter(f => f.tipo !== 'ia');
+    const fazionUmane = declaringFazioni(this.campagna.fazioni).filter(f => f.tipo !== 'ia');
 
     new Setting(contentEl)
       .setName('Fazione')

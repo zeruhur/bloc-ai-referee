@@ -1,7 +1,8 @@
 import type { App } from 'obsidian';
-import type { Campagna, CampagnaStato, GameStateDelta, TipoFazione } from '../types';
+import type { Campagna, CampagnaStato, FazioneConfig, GameStateDelta, TipoFazione } from '../types';
 import { parseYaml, stringifyYaml } from '../utils/yaml';
 import { CAMPAGNE_FOLDER, CAMPAGNA_FILE } from '../constants';
+import { writeFactionFile } from './VaultManager';
 
 async function readRaw(app: App, slug: string): Promise<Record<string, unknown>> {
   const path = `${CAMPAGNE_FOLDER}/${slug}/${CAMPAGNA_FILE}`;
@@ -83,6 +84,66 @@ export async function patchFazioneMC(
   await writeRaw(app, slug, data);
 }
 
+export async function patchFazioneVantaggi(
+  app: App,
+  slug: string,
+  fazioneId: string,
+  vantaggi: string[],
+  svantaggi: string[],
+): Promise<void> {
+  const data = await readRaw(app, slug);
+  const fazioni = data['fazioni'] as Array<Record<string, unknown>>;
+  const fazione = fazioni.find(f => f['id'] === fazioneId);
+  if (fazione) {
+    fazione['vantaggi'] = vantaggi;
+    fazione['svantaggi'] = svantaggi;
+  }
+  await writeRaw(app, slug, data);
+}
+
+export async function setFazioneMC(
+  app: App,
+  slug: string,
+  fazioneId: string,
+  mc: -1 | 0 | 1,
+): Promise<void> {
+  const data = await readRaw(app, slug);
+  const fazioni = data['fazioni'] as Array<Record<string, unknown>>;
+  const fazione = fazioni.find(f => f['id'] === fazioneId);
+  if (fazione) fazione['mc'] = mc;
+  await writeRaw(app, slug, data);
+}
+
+export async function patchFazioneProfilo(
+  app: App,
+  slug: string,
+  fazioneId: string,
+  patch: { nome?: string; obiettivo?: string; concetto?: string },
+): Promise<void> {
+  const data = await readRaw(app, slug);
+  const fazioni = data['fazioni'] as Array<Record<string, unknown>>;
+  const fazione = fazioni.find(f => f['id'] === fazioneId);
+  if (fazione) {
+    if (patch.nome !== undefined) fazione['nome'] = patch.nome;
+    if (patch.obiettivo !== undefined) fazione['obiettivo'] = patch.obiettivo;
+    if (patch.concetto !== undefined) fazione['concetto'] = patch.concetto;
+  }
+  await writeRaw(app, slug, data);
+}
+
+export async function patchFazioneSospesa(
+  app: App,
+  slug: string,
+  fazioneId: string,
+  sospesa: boolean,
+): Promise<void> {
+  const data = await readRaw(app, slug);
+  const fazioni = data['fazioni'] as Array<Record<string, unknown>>;
+  const fazione = fazioni.find(f => f['id'] === fazioneId);
+  if (fazione) fazione['sospesa'] = sospesa;
+  await writeRaw(app, slug, data);
+}
+
 export async function patchFazioneEliminata(
   app: App,
   slug: string,
@@ -107,6 +168,21 @@ export async function patchFazioneTipo(
   const fazione = fazioni.find(f => f['id'] === fazioneId);
   if (fazione) fazione['tipo'] = tipo;
   await writeRaw(app, slug, data);
+}
+
+export async function pushNuovaFazione(
+  app: App,
+  slug: string,
+  fazione: FazioneConfig,
+): Promise<void> {
+  const data = await readRaw(app, slug);
+  const fazioni = data['fazioni'] as Array<Record<string, unknown>>;
+  if (fazioni.some(f => f['id'] === fazione.id)) {
+    throw new Error(`ID fazione già esistente: ${fazione.id}`);
+  }
+  fazioni.push(fazione as unknown as Record<string, unknown>);
+  await writeRaw(app, slug, data);
+  await writeFactionFile(app, slug, fazione.id, fazione, '');
 }
 
 export async function incrementTurno(app: App, campagna: Campagna): Promise<void> {
