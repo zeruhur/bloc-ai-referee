@@ -1,20 +1,3 @@
-<img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" style="height:64px;margin-right:32px"/>
-
-# e per la versione 0.8.0 genera un piano per:
-
-rendi accessibili i comandi da sidebar attraverso ribbon
-la sidebar deve anche riportare:
-
-- le informazioni di base del turno in corso
-- lo stato corrente del turno
-- i messaggi generati dal plugin es. "Valutando azioni: 2/5"
-- l'ordine previsto dal flusso, per rendere intuitivo quando invocare una funzione
-
-Ho tutto il contesto necessario dalla sessione di analisi. Ecco il piano completo per la 0.8.0.
-
-***
-
-```
 # BLOC AI Referee — v0.8.0: Sidebar e Ribbon
 
 ## Contesto
@@ -551,6 +534,5 @@ tutti gli step della pipeline
 4. Elenco aggiornamenti a `manifest.json` se necessari
 5. Test Vitest per `RefereeEventBus` (emit/subscribe/unsubscribe)
 6. Note su eventuali conflitti con l'API Obsidian riscontrati
-```
-```
+
 
