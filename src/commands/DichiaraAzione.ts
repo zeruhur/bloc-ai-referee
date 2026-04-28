@@ -7,6 +7,7 @@ import { createAdapter } from '../llm/LLMAdapter';
 import { autoGenAzioneIA } from '../pipeline/AutoGenAzioneIA';
 import { actionFilePath, fileExists } from '../vault/VaultManager';
 import { declaringFazioni } from '../utils/factionUtils';
+import { cmdGeneraMatrice } from './GeneraMatrice';
 
 export async function cmdDichiaraAzione(app: App, plugin: BlocPlugin): Promise<void> {
   const campagna = await loadActiveCampagna(app, plugin);
@@ -48,7 +49,8 @@ export async function cmdDichiaraAzione(app: App, plugin: BlocPlugin): Promise<v
   }
 
   if (fazionUmane.length === 0) {
-    new Notice('Tutte le fazioni sono IA: azioni generate automaticamente.');
+    new Notice('Tutte le fazioni sono IA: azioni generate. Generazione matrice in corso…');
+    await cmdGeneraMatrice(app, plugin);
     return;
   }
 

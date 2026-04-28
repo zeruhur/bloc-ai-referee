@@ -62,6 +62,25 @@ export const PROVIDER_LABELS: Record<import('./types').LLMProvider, string> = {
   openrouter: 'OpenRouter',
 };
 
+export const STATO_LABELS: Record<CampagnaStato, string> = {
+  raccolta:         '1 · Raccolta azioni',
+  matrice_generata: '2 · Matrice generata',
+  contro_args:      '3 · Contro-argomentazioni',
+  valutazione:      '4 · Valutazione azioni',
+  tiri:             '5 · Esecuzione tiri',
+  review:           '6 · Review arbitro',
+  chiuso:           '7 · Turno chiuso',
+};
+
+export const STATO_ACTION_MAP: Partial<Record<CampagnaStato, { label: string; commandId: string }>> = {
+  raccolta:         { label: '⚡ Genera matrice',            commandId: 'bloc-ai-referee:genera-matrice' },
+  matrice_generata: { label: '⚡ Auto contro-argomentazione', commandId: 'bloc-ai-referee:auto-contro-argomentazione' },
+  contro_args:      { label: '⚡ Valuta azioni',             commandId: 'bloc-ai-referee:valuta-azioni' },
+  valutazione:      { label: '⚡ Esegui tiri',               commandId: 'bloc-ai-referee:esegui-tiri' },
+  tiri:             { label: '⚡ Genera conseguenze',        commandId: 'bloc-ai-referee:genera-conseguenze' },
+  review:           { label: '✓ Chiudi turno',              commandId: 'bloc-ai-referee:chiudi-turno' },
+};
+
 export const LEADER_AVAILABILITY_THRESHOLD = 4;
 
 export const MAX_GAME_STATE_DELTAS_FULL = 5;   // ridotto da 10 per contenere i token

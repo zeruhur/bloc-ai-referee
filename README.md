@@ -23,6 +23,7 @@ Il plugin implementa una pipeline LLM a step separati per valutare le dichiarazi
 - **Accordi e alleanze** — accordi pubblici e privati iniettati nel contesto LLM; tradimento con penalità MC; scadenza automatica in `ChiudiTurno`
 - **Contro-argomentazione automatizzata** — l'LLM può generare le contro-argomentazioni al posto dei giocatori
 - **Modalità asincrona** — i giocatori possono dichiarare in momenti diversi; la modalità sincrona è un sottoinsieme dello stesso flusso
+- **Gestione ciclo di vita fazioni** — elimina, sospendi, fondi, scindi, cambia controllo IA/umano, modifica profilo e vantaggi mid-campagna; pipeline completamente automatizzata per campagne interamente IA
 
 ---
 
@@ -61,7 +62,7 @@ Per la guida completa vedi [GUIDA_UTENTE.md](docs/GUIDA_UTENTE.md).
 | Comando | Stato | Funzione |
 |---|---|---|
 | `BLOC: Nuova campagna` | sempre | Wizard di creazione campagna |
-| `BLOC: Dichiara azione` | `raccolta` | Form dichiarazione + auto-gen fazioni IA |
+| `BLOC: Dichiara azione` | `raccolta` | Form dichiarazione + auto-gen fazioni IA; se tutte IA avanza automaticamente a matrice |
 | `BLOC: Genera matrice` | `raccolta` | LLM Step 1 — genera la matrice delle azioni del turno |
 | `BLOC: Aggiorna svantaggi` | `matrice_generata` | Registra manualmente le contro-argomentazioni |
 | `BLOC: Auto contro-argomentazione` | `matrice_generata` | LLM genera automaticamente le contro-argomentazioni |
@@ -77,6 +78,19 @@ Per la guida completa vedi [GUIDA_UTENTE.md](docs/GUIDA_UTENTE.md).
 | `BLOC: Registra accordo pubblico` | sempre | Registra un accordo pubblico tra fazioni (iniettato nel contesto LLM) |
 | `BLOC: Dichiara tradimento` | sempre | Viola un accordo attivo (MC −1 alla fazione traditrice) |
 | `BLOC: Sciogli accordo` | sempre | Chiude un accordo per accordo reciproco, senza penalità |
+| **Gestione fazioni** | | |
+| `BLOC: Elimina fazione` | sempre | Segna una fazione come eliminata (scompare dalla pipeline) |
+| `BLOC: Ripristina fazione eliminata` | sempre | Riattiva una fazione precedentemente eliminata |
+| `BLOC: Converti fazione in IA` | sempre | Cambia il controllo di una fazione da umano a IA |
+| `BLOC: Converti fazione in umana` | sempre | Cambia il controllo di una fazione da IA a umano |
+| `BLOC: Sospendi fazione` | sempre | Sospende temporaneamente una fazione (non dichiara azioni, ma resta nel contesto LLM) |
+| `BLOC: Riattiva fazione sospesa` | sempre | Riattiva una fazione precedentemente sospesa |
+| `BLOC: Modifica profilo fazione` | sempre | Modifica nome, obiettivo e concetto di una fazione |
+| `BLOC: Modifica vantaggi fazione` | sempre | Riscrive l'elenco di vantaggi e svantaggi di una fazione |
+| `BLOC: Fondi fazioni` | sempre | Unisce due fazioni: A assorbe B, vantaggi selezionabili, B eliminata |
+| `BLOC: Aggiungi nuova fazione` | sempre | Crea una nuova fazione mid-campagna e la aggiunge a `campagna.yaml` |
+| `BLOC: Scindi fazione` | sempre | Crea una fazione derivata da una esistente, con redistribuzione vantaggi |
+| `BLOC: Genera leader fazione` | sempre | Assegna un nome casuale al leader di una fazione che ne è priva |
 
 ---
 

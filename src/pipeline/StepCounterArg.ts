@@ -10,6 +10,7 @@ import { counterArgOutputSchema, CounterArgOutputZod } from './schemas/counterAr
 import { LLMValidationError } from '../llm/LLMAdapter';
 import { getCompressedDeltas, getHistorySummary } from '../utils/contextWindow';
 import { parseYaml } from '../utils/yaml';
+import { refereeEventBus } from '../ui/RefereeEventBus';
 
 const STEP_NAME = 'StepCounterArg';
 
@@ -31,6 +32,7 @@ export async function runStepCounterArg(
   const matrix = parseYaml<MatrixOutput>(matrixFrontmatter);
 
   await markStepStarted(app, slug, turno_corrente, STEP_NAME);
+  refereeEventBus.emit({ type: 'step-start', step: STEP_NAME, message: 'Generazione contro-argomentazioni…', timestamp: new Date() });
 
   try {
     const deltas = getCompressedDeltas(campagna.game_state_delta, campagna.llm.provider);
@@ -89,7 +91,13 @@ export async function runStepCounterArg(
 
     await patchCampagnaStato(app, slug, 'contro_args');
     await markStepCompleted(app, slug, turno_corrente, STEP_NAME, [matrixPath]);
+    refereeEventBus.emit({
+      type: 'step-done', step: STEP_NAME,
+      message: `Contro-argomentazioni generate. Token: ${response.tokens_used ?? '—'}`,
+      timestamp: new Date(),
+    });
   } catch (err) {
+    refereeEventBus.emit({ type: 'error', step: STEP_NAME, message: `Errore: ${(err as Error).message}`, timestamp: new Date() });
     await markRunFailed(app, slug, turno_corrente, STEP_NAME, (err as Error).message);
     throw err;
   }

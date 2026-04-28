@@ -18,6 +18,7 @@ import { matrixOutputSchema, MatrixOutputZod } from './schemas/matrixSchema';
 import { LLMValidationError } from '../llm/LLMAdapter';
 import { getCompressedDeltas, getHistorySummary } from '../utils/contextWindow';
 import { resolveSpionaggio } from '../dice/DiceEngine';
+import { refereeEventBus } from '../ui/RefereeEventBus';
 
 const STEP_NAME = 'Step1Matrix';
 
@@ -42,6 +43,7 @@ export async function runStep1Matrix(
   }
 
   await markStepStarted(app, slug, turno_corrente, STEP_NAME);
+  refereeEventBus.emit({ type: 'step-start', step: STEP_NAME, message: 'Generazione matrice in corso…', timestamp: new Date() });
 
   try {
     // ---- Spionaggio pre-pipeline ----
@@ -128,9 +130,15 @@ export async function runStep1Matrix(
 
     await patchCampagnaStato(app, slug, 'matrice_generata');
     await markStepCompleted(app, slug, turno_corrente, STEP_NAME, writtenFiles);
+    refereeEventBus.emit({
+      type: 'step-done', step: STEP_NAME,
+      message: `Matrice generata. Token: ${response.tokens_used ?? '—'}`,
+      timestamp: new Date(),
+    });
 
     return matrix;
   } catch (err) {
+    refereeEventBus.emit({ type: 'error', step: STEP_NAME, message: `Errore: ${(err as Error).message}`, timestamp: new Date() });
     await markRunFailed(app, slug, turno_corrente, STEP_NAME, (err as Error).message);
     throw err;
   }

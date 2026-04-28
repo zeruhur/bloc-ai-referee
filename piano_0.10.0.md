@@ -1,4 +1,4 @@
-# BLOC AI Referee — v0.8.0: Sidebar e Ribbon
+# BLOC AI Referee — v0.10.0: Sidebar e Ribbon
 
 ## Contesto
 Plugin Obsidian TypeScript. I comandi sono già registrati in `src/main.ts`
@@ -10,22 +10,53 @@ di avanzamento.
 
 ---
 
-## PRIMA DI TUTTO: ricognizione obbligatoria
+## Ricognizione baseline v0.9.2
 
-Leggi e mappa prima di modificare:
+Stato rilevato prima dell'implementazione (nessun ribbon esistente, nessun check
+di stato esplicito in `main.ts` — i check sono interni alle singole funzioni comando):
 
-1. `src/main.ts` — tutti i comandi registrati con id, name, condizioni
-   di abilitazione (se esistono), eventuali ribbon già aggiunti
-2. `src/types.ts` — tipo `CampagnaStato`, `BlocPluginSettings`, struttura
-   di `Campagna`
-3. `src/constants.ts` — `STATO_TRANSITIONS`, `PROVIDER_LABELS`,
-   etichette esistenti
-4. `src/ui/` — tutti i file presenti: modal, settings tab, eventuali view
-5. `src/vault/VaultManager.ts` — funzioni di caricamento campagna attiva
-6. `run-state.yaml` (struttura definita in Patch 2) — campi disponibili
+| Comando | addCommand id | Stato richiesto | Ha ribbon? |
+|---|---|---|---|
+| BLOC: Nuova campagna | `nuova-campagna` | — | No |
+| BLOC: Dichiara azione | `dichiara-azione` | raccolta (check interno) | No |
+| BLOC: Genera matrice | `genera-matrice` | raccolta (check interno) | No |
+| BLOC: Aggiorna svantaggi | `aggiorna-svantaggi` | matrice_generata | No |
+| BLOC: Auto contro-argomentazione | `auto-contro-argomentazione` | matrice_generata | No |
+| BLOC: Valuta azioni | `valuta-azioni` | contro_args | No |
+| BLOC: Esegui tiri | `esegui-tiri` | valutazione | No |
+| BLOC: Genera conseguenze | `genera-conseguenze` | tiri | No |
+| BLOC: Chiudi turno | `chiudi-turno` | review | No |
+| BLOC: Stato campagna | `stato-campagna` | — | No |
+| BLOC: Attiva azione latente | `attiva-azione-latente` | — | No |
+| BLOC: Interroga oracolo | `interroga-oracolo` | — | No |
+| BLOC: Verifica disponibilità leader | `verifica-leader` | — | No |
+| BLOC: Elimina leader fazione | `elimina-leader` | — | No |
+| BLOC: Elimina fazione | `elimina-fazione` | — | No |
+| BLOC: Ripristina fazione | `ripristina-fazione` | — | No |
+| BLOC: Converti fazione a controllo IA | `converti-a-ia` | — | No |
+| BLOC: Converti fazione a controllo umano | `converti-a-umano` | — | No |
+| BLOC: Modifica profilo fazione | `modifica-fazione` | — | No |
+| BLOC: Sospendi fazione | `sospendi-fazione` | — | No |
+| BLOC: Riattiva fazione sospesa | `riattiva-fazione` | — | No |
+| BLOC: Modifica vantaggi fazione | `modifica-vantaggi-fazione` | — | No |
+| BLOC: Fondi fazioni | `fondi-fazioni` | — | No |
+| BLOC: Aggiungi nuova fazione | `aggiungi-nuova-fazione` | — | No |
+| BLOC: Scindi fazione | `scindi-fazione` | — | No |
+| BLOC: Registra accordo privato | `registra-accordo-privato` | — | No |
+| BLOC: Registra accordo pubblico | `registra-accordo-pubblico` | — | No |
+| BLOC: Dichiara tradimento | `dichiara-tradimento` | — | No |
+| BLOC: Sciogli accordo | `sciogli-accordo` | — | No |
+| BLOC: Genera leader fazione | `genera-leader` | — | No |
 
-Produci come primo output:
-| Comando esistente | addCommand id | Stato richiesto | Ha ribbon? |
+**File UI esistenti in `src/ui/`**: `SettingsTab.ts`, `FazionePickerModal.ts`,
+`modals/NuovaCampagnaModal.ts`, `modals/NuovaFazioneModal.ts`,
+`modals/DichiaraAzioneModal.ts`, `modals/AggiornaSvantaggiModal.ts`,
+`modals/OracleModal.ts`, `modals/RegistraAccordoModal.ts`,
+`modals/StatusModal.ts`, `modals/ConfirmOverwriteModal.ts`.
+
+**`RunState` e `loadRunState`** esistono in `src/vault/RunStateManager.ts`.
+`STATO_LABELS` e `STATO_ACTION_MAP` **non esistono ancora** in `constants.ts`.
+`styles.css` **non esiste** nella root del plugin.
 
 ---
 
@@ -86,7 +117,7 @@ await this.activateRefereeView();
 async activateRefereeView(): Promise<void> {
   const existing = this.app.workspace.getLeavesOfType(VIEW_TYPE_REFEREE);
   if (existing.length > 0) {
-    this.app.workspace.revealLeaf(existing);
+    this.app.workspace.revealLeaf(existing[0]);
     return;
   }
   const leaf = this.app.workspace.getRightLeaf(false);
@@ -360,6 +391,9 @@ private renderActions(
   section.createEl('h4', { text: 'Azioni' });
 
   // Resume prioritario se run fallita
+  // NOTA: 'bloc-ai-referee:riprendi-pipeline' non esiste ancora in v0.9.2.
+  // Opzione A: implementarlo come nuovo comando in questa feature.
+  // Opzione B: omettere il bottone per ora e mostrare solo il messaggio di errore.
   if (runState?.status === 'failed') {
     const btn = section.createEl('button', {
       text: `↩ Riprendi da: ${runState.current_step}`,
@@ -388,7 +422,7 @@ private renderActions(
     cls: 'bloc-btn bloc-btn-secondary'
   });
   oracoloBtn.addEventListener('click', () =>
-    this.plugin.app.commands.executeCommandById('bloc-ai-referee:oracolo')
+    this.plugin.app.commands.executeCommandById('bloc-ai-referee:interroga-oracolo')
   );
 }
 ```
@@ -401,12 +435,12 @@ export const STATO_ACTION_MAP: Partial<Record<CampagnaStato, {
   commandId: string;
 }>> = {
   raccolta:         { label: '⚡ Genera matrice',              commandId: 'bloc-ai-referee:genera-matrice' },
-  matrice_generata: { label: '⚡ Auto contro-argomentazione',   commandId: 'bloc-ai-referee:contro-argomentazione' },
+  matrice_generata: { label: '⚡ Auto contro-argomentazione',   commandId: 'bloc-ai-referee:auto-contro-argomentazione' },
   contro_args:      { label: '⚡ Valuta azioni',               commandId: 'bloc-ai-referee:valuta-azioni' },
   valutazione:      { label: '⚡ Esegui tiri',                 commandId: 'bloc-ai-referee:esegui-tiri' },
-  tiri:             { label: '⚡ Genera narrativa',            commandId: 'bloc-ai-referee:genera-narrativa' },
+  tiri:             { label: '⚡ Genera conseguenze',          commandId: 'bloc-ai-referee:genera-conseguenze' },
   review:           { label: '✓ Chiudi turno',                commandId: 'bloc-ai-referee:chiudi-turno' },
-  chiuso:           { label: '+ Nuovo turno',                 commandId: 'bloc-ai-referee:nuovo-turno' },
+  // chiuso: nessuna azione primaria — chiudi-turno avanza già al turno successivo
 };
 ```
 
@@ -428,7 +462,7 @@ cambiano su disco.
 3. **Metodo `refresh()`** nella `RefereeView`:
 ```typescript
 async refresh(): Promise<void> {
-  const container = this.containerEl.children as HTMLElement;
+  const container = this.containerEl.children[1] as HTMLElement;
   container.empty();
   const campagna = await this.loadActiveCampaign();
   const runState = campagna
@@ -525,14 +559,14 @@ in `main.ts` via `addCommand`, non duplicati
 
 ---
 
-## Output atteso da Claude Code
+## Output atteso dall'implementazione
 
-1. Tabella ricognizione iniziale (comandi esistenti + ribbon esistenti)
-2. File creati: `RefereeView.ts`, `RefereeEventBus.ts`, `styles.css`
-3. File modificati: `main.ts`, `constants.ts`, `types.ts`,
-tutti gli step della pipeline
-4. Elenco aggiornamenti a `manifest.json` se necessari
-5. Test Vitest per `RefereeEventBus` (emit/subscribe/unsubscribe)
-6. Note su eventuali conflitti con l'API Obsidian riscontrati
+1. File creati: `src/ui/RefereeView.ts`, `src/ui/RefereeEventBus.ts`, `styles.css`
+2. File modificati: `src/main.ts`, `src/constants.ts` (aggiunta `STATO_LABELS`, `STATO_ACTION_MAP`),
+   step della pipeline (`Step1Matrix.ts`, `StepCounterArg.ts`, `Step2Evaluate.ts`, `EseguiTiri.ts`)
+3. `manifest.json` — verificare se richiede `"css": "styles.css"` o se il file viene
+   caricato automaticamente dalla cartella del plugin (comportamento di default in Obsidian ≥ 1.5)
+4. Test Vitest per `RefereeEventBus` (emit/subscribe/unsubscribe)
+5. Decisione su `riprendi-pipeline`: nuovo comando o bottone omesso
 
 

@@ -19,6 +19,7 @@ import { evaluateOutputSchema, EvaluateOutputZod } from './schemas/evaluateSchem
 import { LLMValidationError } from '../llm/LLMAdapter';
 import { getCompressedDeltas, getHistorySummary } from '../utils/contextWindow';
 import { Notice } from 'obsidian';
+import { refereeEventBus } from '../ui/RefereeEventBus';
 
 const STEP_NAME = 'Step2Evaluate';
 
@@ -43,6 +44,7 @@ export async function runStep2Evaluate(
   }
 
   await markStepStarted(app, slug, turno_corrente, STEP_NAME);
+  refereeEventBus.emit({ type: 'step-start', step: STEP_NAME, message: `Avvio valutazione azioni (0/${actions.length})…`, timestamp: new Date() });
 
   try {
     const deltas = getCompressedDeltas(campagna.game_state_delta, campagna.llm.provider);
@@ -52,6 +54,7 @@ export async function runStep2Evaluate(
     for (let i = 0; i < actions.length; i++) {
       const action = actions[i];
       onProgress?.(i + 1, actions.length);
+      refereeEventBus.emit({ type: 'progress', step: STEP_NAME, message: `Valutando: ${action.fazione} (${i + 1}/${actions.length})`, timestamp: new Date() });
 
       const { system, user } = buildEvaluatePrompt(campagna, matrice, action, deltas, historySummary);
 
@@ -99,9 +102,15 @@ export async function runStep2Evaluate(
 
     await patchCampagnaStato(app, slug, 'valutazione');
     await markStepCompleted(app, slug, turno_corrente, STEP_NAME, [matrixPath]);
+    refereeEventBus.emit({
+      type: 'step-done', step: STEP_NAME,
+      message: `Valutazione completata: ${evaluations.length} azioni.`,
+      timestamp: new Date(),
+    });
 
     return evaluations;
   } catch (err) {
+    refereeEventBus.emit({ type: 'error', step: STEP_NAME, message: `Errore: ${(err as Error).message}`, timestamp: new Date() });
     await markRunFailed(app, slug, turno_corrente, STEP_NAME, (err as Error).message);
     throw err;
   }

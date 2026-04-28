@@ -13,6 +13,7 @@ import { parseFrontmatter } from '../utils/yaml';
 import { patchCampagnaStato } from '../vault/CampaignWriter';
 import { resolveFactionName } from '../utils/factionUtils';
 import { ESITO_LABELS } from '../constants';
+import { refereeEventBus } from '../ui/RefereeEventBus';
 import type { MatrixEntry, MatrixOutput, RollResult, DiceResult } from '../types';
 
 const STEP_NAME = 'EseguiTiri';
@@ -66,6 +67,7 @@ export async function cmdEseguiTiri(app: App, plugin: BlocPlugin): Promise<void>
   const seed = Date.now();
 
   await markStepStarted(app, slug, turno_corrente, STEP_NAME);
+  refereeEventBus.emit({ type: 'step-start', step: STEP_NAME, message: 'Esecuzione tiri…', timestamp: new Date() });
 
   try {
     // Handle direct conflicts first
@@ -159,8 +161,10 @@ export async function cmdEseguiTiri(app: App, plugin: BlocPlugin): Promise<void>
     // Store rolls for Step3 via plugin state
     plugin.lastRolls = rolls;
 
+    refereeEventBus.emit({ type: 'step-done', step: STEP_NAME, message: `Tiri completati: ${rolls.length} azioni.`, timestamp: new Date() });
     new Notice(`Tiri eseguiti: ${rolls.length} azioni. Stato → tiri.`);
   } catch (err) {
+    refereeEventBus.emit({ type: 'error', step: STEP_NAME, message: `Errore tiri: ${(err as Error).message}`, timestamp: new Date() });
     await markRunFailed(app, slug, turno_corrente, STEP_NAME, (err as Error).message);
     new Notice(`Errore tiri: ${(err as Error).message}`);
   }

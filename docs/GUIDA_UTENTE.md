@@ -9,14 +9,15 @@ Questa guida copre tutto il necessario per usare il plugin, dalla prima installa
 3. [Creare una campagna](#3-creare-una-campagna)
 4. [Flusso di un turno](#4-flusso-di-un-turno)
 5. [Fazioni IA](#5-fazioni-ia)
-6. [Azioni speciali](#6-azioni-speciali)
-7. [Oracolo](#7-oracolo)
-8. [Meccanica Leader](#8-meccanica-leader)
-9. [Accordi e alleanze](#9-accordi-e-alleanze)
-10. [Struttura dei file](#10-struttura-dei-file)
-11. [Gestione provider LLM](#11-gestione-provider-llm)
-12. [Riferimento comandi](#12-riferimento-comandi)
-13. [Domande frequenti](#13-domande-frequenti)
+6. [Gestione ciclo di vita delle fazioni](#6-gestione-ciclo-di-vita-delle-fazioni)
+7. [Azioni speciali](#7-azioni-speciali)
+8. [Oracolo](#8-oracolo)
+9. [Meccanica Leader](#9-meccanica-leader)
+10. [Accordi e alleanze](#10-accordi-e-alleanze)
+11. [Struttura dei file](#11-struttura-dei-file)
+12. [Gestione provider LLM](#12-gestione-provider-llm)
+13. [Riferimento comandi](#13-riferimento-comandi)
+14. [Domande frequenti](#14-domande-frequenti)
 
 ## 1. Quick Start
 
@@ -93,7 +94,7 @@ Per ogni fazione, compila:
 | **Nome** | Nome completo della fazione |
 | **Obiettivo** | Obiettivo strategico — l'LLM lo usa per valutare la coerenza delle azioni |
 | **Profilo** | Descrizione libera delle capacità, punti di forza e debolezze |
-| **Nome leader** *(opzionale)* | Abilita la [meccanica leader](#8-meccanica-leader) per questa fazione |
+| **Nome leader** *(opzionale)* | Abilita la [meccanica leader](#9-meccanica-leader) per questa fazione |
 
 > **Come scrivere un buon profilo.** Non elencare vantaggi e svantaggi in modo rigido: descrivi la fazione come faresti in una presentazione narrativa. *"I Draghi del Nord eccellono in operazioni notturne e movimenti rapidi, ma faticano a mantenere il controllo di territori vasti per la loro struttura decentralizzata."* L'LLM interpreterà questi tratti contestualmente per ogni azione dichiarata.
 
@@ -197,9 +198,67 @@ Per ogni fazione IA senza dichiarazione:
 
 Le reazioni tra fazioni IA usano `rollReactionTable` (1d6: 1–2 Ostile, 3–4 Neutrale, 5–6 Collaborativa). I conflitti IA-vs-IA usano `rollIAConflictOutcome` (1d6: 1–2 Vittoria totale, 3–4 Vittoria parziale, 5–6 Stallo) — senza chiamate LLM.
 
+### Campagna interamente automatizzata
+
+Se **tutte** le fazioni sono `tipo: ia` (nessuna umana), `BLOC: Dichiara azione` genera tutte le dichiarazioni automaticamente e, al termine, lancia automaticamente **`BLOC: Genera matrice`** — portando lo stato direttamente a `matrice_generata` senza intervento manuale.
+
 Per generare rapidamente le dichiarazioni delle fazioni IA senza aprire il form manuale usa **`BLOC: Dichiara azione`** quando tutte le fazioni umane hanno già dichiarato: il plugin rileva che non ci sono fazioni umane in attesa e chiude automaticamente il form.
 
-## 6. Azioni speciali
+## 6. Gestione ciclo di vita delle fazioni
+
+Durante una campagna, le fazioni possono subire cambiamenti strutturali: essere eliminate, fondersi, scindere una corrente interna o passare da controllo umano a IA. Tutti questi eventi si gestiscono con i comandi dedicati — senza modificare manualmente `campagna.yaml`.
+
+> **Momento consigliato**: usa questi comandi all'inizio di un turno (stato `raccolta`), prima di dichiarare le azioni. I comandi funzionano in qualsiasi stato, ma modificare una fazione a metà pipeline può generare incoerenze nella matrice o nella valutazione già prodotta.
+
+### Eliminazione e ripristino
+
+**`BLOC: Elimina fazione`** — segna una fazione come `eliminata: true`. La fazione scompare da tutti i picker e dal contesto LLM inviato ai prompt. L'operazione è **reversibile**.
+
+**`BLOC: Ripristina fazione`** — riporta allo stato attivo una fazione eliminata (rimuove il flag `eliminata`).
+
+### Controllo IA / umano
+
+**`BLOC: Converti fazione a controllo IA`** — converte una fazione umana in IA (`tipo: ia`). Al prossimo `BLOC: Dichiara azione` la dichiarazione sarà generata automaticamente.
+
+**`BLOC: Converti fazione a controllo umano`** — riporta una fazione IA a controllo umano (`tipo: normale`). Il prossimo turno si aprirà il form di dichiarazione.
+
+### Sospensione temporanea
+
+La sospensione è diversa dall'eliminazione: la fazione **rimane nel contesto narrativo LLM** (appare nei prompt) ma non dichiara azioni nel turno corrente. Utile per fazioni temporaneamente neutralizzate o in attesa di eventi.
+
+**`BLOC: Sospendi fazione`** — imposta `sospesa: true`. La fazione non compare nel picker di `BLOC: Dichiara azione`.
+
+**`BLOC: Riattiva fazione sospesa`** — rimuove `sospesa` e ripristina la partecipazione alla dichiarazione.
+
+### Modifica profilo e statistiche
+
+**`BLOC: Modifica profilo fazione`** — aggiorna nome, obiettivo e concetto di una fazione attraverso un form. L'ID file (`id`) rimane invariato — i file di azione già scritti sul disco non vengono rinominati.
+
+**`BLOC: Modifica vantaggi fazione`** — riscrive gli array `vantaggi` e `svantaggi` di una fazione. Il form mostra i valori attuali in una textarea (un elemento per riga); salva la versione modificata.
+
+### Operazioni strutturali
+
+**`BLOC: Fondi fazioni`** — fonde due fazioni: la fazione A sopravvive assorbendo B.
+
+Flusso:
+1. Picker fazione A (sopravvissuta)
+2. Picker fazione B (assorbita)
+3. Modal con checkbox sui vantaggi e svantaggi combinati (default: tutti selezionati) e scelta dell'MC risultante (default: `max(A.mc, B.mc)`)
+4. Submit: vantaggi aggiornati su A, B marcata come eliminata
+
+**`BLOC: Aggiungi nuova fazione`** — crea una nuova fazione mid-campagna. Apre lo stesso form del wizard di creazione (nome, obiettivo, concetto, vantaggi, MC, tipo, leader opzionale). Al salvataggio, aggiunge la fazione a `campagna.yaml` e crea `fazioni/{id}.md`.
+
+**`BLOC: Scindi fazione`** — crea una seconda fazione per scissione da una esistente.
+
+Flusso:
+1. Picker fazione sorgente
+2. Form nuova fazione (precompilato con nome suggerito `{sorgente} — Ala dissidente`)
+3. Sezione opzionale "Ridistribuisci vantaggi": checkbox per trasferire vantaggi dalla sorgente alla nuova fazione
+4. Submit: nuova fazione creata, vantaggi trasferiti rimossi dalla sorgente (la sorgente rimane attiva)
+
+**`BLOC: Genera leader fazione`** — genera tramite LLM il nome e il profilo del leader per una fazione priva di leader. Il nome viene salvato in `campagna.yaml` (`leader.nome`) e il profilo narrativo nella scheda `fazioni/{id}.md`.
+
+## 7. Azioni speciali
 
 ### Azioni latenti
 
@@ -239,7 +298,7 @@ Il tiro viene registrato in `tiri.md` nella sezione pre-pipeline, prima dei tiri
 | 1–3 | Fallimento — l'azione segreta rimane nascosta |
 | 4–6 | Scoperta — l'azione segreta entra in `matrice.md` con `[SCOPERTA]` |
 
-## 7. Oracolo
+## 8. Oracolo
 
 L'oracolo risponde a domande chiuse (sì/no) senza coinvolgere l'LLM. È lo strumento classico per risolvere incertezze di stato del mondo in campagne solitarie: *"I rinforzi arrivano in tempo?"*, *"Il territorio è già presidiato?"*.
 
@@ -268,7 +327,7 @@ L'oracolo risponde a domande chiuse (sì/no) senza coinvolgere l'LLM. È lo stru
 
 Il risultato viene appeso a `campagne/{slug}/oracolo.md` con turno, dado, modificatore e valore finale.
 
-## 8. Meccanica Leader
+## 9. Meccanica Leader
 
 Il leader è un personaggio chiave che può agire come risorsa aggiuntiva nel turno, ma la cui disponibilità non è garantita.
 
@@ -281,6 +340,8 @@ leader:
   nome: "Generale Aurelio"
   presente: true
 ```
+
+Per aggiungere un leader a una fazione già esistente usa **`BLOC: Genera leader fazione`** — genera nome e profilo tramite LLM, poi li salva in `campagna.yaml` e nella scheda fazione.
 
 ### Verificare la disponibilità
 
@@ -300,7 +361,7 @@ Dichiara un'azione con `tipo_azione: leader`. Il form verifica automaticamente l
 
 Seleziona la fazione dal picker (mostra solo fazioni con `leader.presente === true`). Il plugin imposta `presente: false` e applica MC −1.
 
-## 9. Accordi e alleanze
+## 10. Accordi e alleanze
 
 Il plugin supporta due tipi di accordi tra fazioni: **pubblici** (noti a tutti, iniettati nel contesto LLM) e **privati** (segreti, mai inviati all'LLM).
 
@@ -378,7 +439,7 @@ accordi:
     violazioni: []
 ```
 
-## 10. Struttura dei file
+## 11. Struttura dei file
 
 Il plugin gestisce tutto nella cartella `campagne/` della vault:
 
@@ -401,7 +462,7 @@ fazioni/
 └── {slug}-latenti.yaml                  # Azioni latenti in attesa di attivazione
 ```
 
-## 11. Gestione provider LLM
+## 12. Gestione provider LLM
 
 ### Cambiare provider per una campagna specifica
 
@@ -430,12 +491,14 @@ Con Gemini 2.5 (1M token) il contesto cumulativo di 10 turni è sempre entro i l
 
 Assicurati che Ollama sia in ascolto prima di usare i comandi. L'URL base predefinito è `http://localhost:11434` — modificabile nelle impostazioni. Modelli consigliati per structured output: `gemma3:12b`, `mistral-nemo`, `llama3.3`.
 
-## 12. Riferimento comandi
+## 13. Riferimento comandi
+
+### Pipeline di gioco
 
 | Comando | Stato richiesto | Descrizione |
 |---|---|---|
 | `BLOC: Nuova campagna` | sempre | Wizard di creazione campagna |
-| `BLOC: Dichiara azione` | `raccolta` | Auto-gen fazioni IA + form fazioni umane |
+| `BLOC: Dichiara azione` | `raccolta` | Auto-gen fazioni IA + form fazioni umane; se tutte IA lancia automaticamente Genera matrice |
 | `BLOC: Genera matrice` | `raccolta` | LLM Step 1 — produce `matrice.md` + `matrice-arbitro.md` |
 | `BLOC: Aggiorna svantaggi` | `matrice_generata` | Inserimento manuale contro-argomentazioni |
 | `BLOC: Auto contro-argomentazione` | `matrice_generata` | LLM genera le contro-argomentazioni |
@@ -444,18 +507,40 @@ Assicurati che Ollama sia in ascolto prima di usare i comandi. L'URL base predef
 | `BLOC: Genera conseguenze` | `tiri` | LLM Step 3 — produce `narrativa.md` |
 | `BLOC: Chiudi turno` | `review` | Scade accordi, archivia e prepara il turno successivo |
 | `BLOC: Stato campagna` | sempre | Riepilogo campagna e fazioni |
+
+### Strumenti di arbitraggio
+
+| Comando | Stato richiesto | Descrizione |
+|---|---|---|
 | `BLOC: Attiva azione latente` | sempre | Attiva un'azione latente archiviata |
 | `BLOC: Interroga oracolo` | sempre | Risposta Sì/No a domanda (dado modificato) |
 | `BLOC: Verifica disponibilità leader` | sempre | Tira disponibilità leader, aggiorna `campagna.yaml` |
 | `BLOC: Elimina leader fazione` | sempre | Segna leader come eliminato (MC −1) |
+| `BLOC: Genera leader fazione` | sempre | Genera nome e profilo leader tramite LLM |
 | `BLOC: Registra accordo privato` | sempre | Salva accordo segreto in `campagna-privato.yaml` |
 | `BLOC: Registra accordo pubblico` | sempre | Registra accordo pubblico iniettato nel contesto LLM |
 | `BLOC: Dichiara tradimento` | sempre | Viola un accordo attivo (MC −1 alla fazione traditrice) |
 | `BLOC: Sciogli accordo` | sempre | Chiude un accordo consensualmente, senza penalità |
 
+### Gestione fazioni
+
+| Comando | Stato richiesto | Descrizione |
+|---|---|---|
+| `BLOC: Elimina fazione` | sempre | Segna una fazione come eliminata — scompare da picker e contesto LLM |
+| `BLOC: Ripristina fazione` | sempre | Riporta allo stato attivo una fazione eliminata |
+| `BLOC: Converti fazione a controllo IA` | sempre | Converte una fazione umana in IA |
+| `BLOC: Converti fazione a controllo umano` | sempre | Converte una fazione IA in umana |
+| `BLOC: Sospendi fazione` | sempre | Esclude temporaneamente una fazione dalla dichiarazione azioni |
+| `BLOC: Riattiva fazione sospesa` | sempre | Riporta la fazione nella lista delle dichiaranti |
+| `BLOC: Modifica profilo fazione` | sempre | Aggiorna nome, obiettivo e concetto |
+| `BLOC: Modifica vantaggi fazione` | sempre | Riscrive l'elenco vantaggi e svantaggi |
+| `BLOC: Fondi fazioni` | sempre | Fonde due fazioni: A assorbe B (B viene eliminata) |
+| `BLOC: Aggiungi nuova fazione` | sempre | Crea una nuova fazione mid-campagna |
+| `BLOC: Scindi fazione` | sempre | Crea una nuova fazione per scissione, con ridistribuzione opzionale dei vantaggi |
+
 > Tutti i comandi sono accessibili dalla **Command Palette** (`Ctrl+P` / `Cmd+P`).
 
-## 13. Domande frequenti
+## 14. Domande frequenti
 
 ### Devo specificare vantaggi e svantaggi come liste?
 
@@ -510,3 +595,11 @@ No. Gli accordi **non aggiungono o tolgono dadi automaticamente**. Vengono iniet
 ### Cosa succede se un accordo viene violato più volte?
 
 Ogni tradimento si registra nel campo `violazioni` dell'accordo (con turno e fazione). Il flag `[TRADIMENTO RECENTE]` viene iniettato solo per la violazione più recente: l'LLM viene avvisato di trattare con scetticismo gli argomenti diplomatici di quella fazione nel turno successivo. Non c'è limite al numero di violazioni registrabili.
+
+### Qual è la differenza tra "Sospendi fazione" ed "Elimina fazione"?
+
+**Sospesa**: la fazione non dichiara azioni nel turno ma rimane nel contesto narrativo inviato all'LLM — appare nei prompt come entità presente nel setting. Utile per fazioni momentaneamente inattive (tregua, riorganizzazione interna).
+
+**Eliminata**: la fazione scompare sia dai picker sia dal contesto LLM. È la scelta corretta per fazioni definitivamente rimosse dalla narrativa (sconfitte, dissolte, assorbite da un'altra fazione).
+
+Entrambe le operazioni sono reversibili: usa "Ripristina fazione" o "Riattiva fazione sospesa".

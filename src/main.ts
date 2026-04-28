@@ -1,6 +1,7 @@
 import { Plugin } from 'obsidian';
 import type { RollResult } from './types';
 import type { BlocPluginSettings } from './types';
+import { VIEW_TYPE_REFEREE, RefereeView } from './ui/RefereeView';
 import { DEFAULT_SETTINGS } from './constants';
 import { BlocSettingsTab } from './ui/SettingsTab';
 import { cmdNuovaCampagna } from './commands/NuovaCampagna';
@@ -38,6 +39,22 @@ export default class BlocPlugin extends Plugin {
   async onload(): Promise<void> {
     await this.loadSettings();
     this.addSettingTab(new BlocSettingsTab(this.app, this));
+
+    this.registerView(VIEW_TYPE_REFEREE, leaf => new RefereeView(leaf, this));
+
+    this.addRibbonIcon('shield', 'BLOC Referee', () => {
+      void this.activateRefereeView();
+    });
+    this.addRibbonIcon('dice', 'Esegui tiri', () => {
+      void cmdEseguiTiri(this.app, this);
+    });
+    this.addRibbonIcon('book-open', 'Genera conseguenze', () => {
+      void cmdGeneraConseguenze(this.app, this);
+    });
+
+    this.app.workspace.onLayoutReady(() => {
+      void this.activateRefereeView();
+    });
 
     this.addCommand({
       id: 'nuova-campagna',
@@ -218,6 +235,22 @@ export default class BlocPlugin extends Plugin {
       name: 'BLOC: Genera leader fazione',
       callback: () => cmdGeneraLeader(this.app, this),
     });
+  }
+
+  onunload(): void {
+    this.app.workspace.detachLeavesOfType(VIEW_TYPE_REFEREE);
+  }
+
+  async activateRefereeView(): Promise<void> {
+    const existing = this.app.workspace.getLeavesOfType(VIEW_TYPE_REFEREE);
+    if (existing.length > 0) {
+      this.app.workspace.revealLeaf(existing[0]);
+      return;
+    }
+    const leaf = this.app.workspace.getRightLeaf(false);
+    if (!leaf) return;
+    await leaf.setViewState({ type: VIEW_TYPE_REFEREE, active: true });
+    this.app.workspace.revealLeaf(leaf);
   }
 
   async loadSettings(): Promise<void> {
