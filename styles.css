@@ -52,3 +52,38 @@
   color: white;
   border-color: transparent;
 }
+
+.bloc-group { margin-bottom: 4px; border: none; padding: 0; }
+.bloc-group-title {
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 4px 0;
+  list-style: none;
+  user-select: none;
+}
+.bloc-group-title::before { content: '▶ '; font-size: 9px; }
+details[open] > .bloc-group-title::before { content: '▼ '; }
+
+.bloc-cmd-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px 0 6px 0;
+}
+.bloc-btn-cmd {
+  width: 100%;
+  margin-bottom: 0;
+  padding: 4px 6px;
+  font-size: 11px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 3px;
+  cursor: pointer;
+  color: var(--text-normal);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

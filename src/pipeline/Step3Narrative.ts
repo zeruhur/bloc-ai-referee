@@ -53,9 +53,10 @@ export async function runStep3Narrative(
     .filter(a => a.valutazione)
     .map(a => a.valutazione as EvaluationOutput);
 
+  const isLastTurn = campagna.meta.turno_corrente >= campagna.meta.turno_totale;
   const deltas = getCompressedDeltas(campagna.game_state_delta, campagna.llm.provider);
   const historySummary = getHistorySummary(campagna.game_state_delta, campagna.llm.provider);
-  const { system, user } = buildNarrativePrompt(campagna, matrice, rolls, evaluations, deltas, historySummary);
+  const { system, user } = buildNarrativePrompt(campagna, matrice, rolls, evaluations, deltas, historySummary, null, isLastTurn);
 
   const response = await adapter.complete({
     system,
@@ -123,7 +124,7 @@ export async function runStep3Narrative(
   });
 
   // Write human-readable narrative file
-  const narrativeBody = buildNarrativeBody(narrative, turno_corrente, campagna.fazioni);
+  const narrativeBody = buildNarrativeBody(narrative, turno_corrente, campagna.fazioni, isLastTurn);
   await app.vault.adapter.write(outPath, buildFileWithFrontmatter(narrative, narrativeBody));
 
   await patchCampagnaStato(app, slug, 'review');
@@ -135,6 +136,7 @@ function buildNarrativeBody(
   narrative: NarrativeOutput,
   turno: number,
   fazioni: FazioneConfig[],
+  isLastTurn = false,
 ): string {
   const sections = narrative.conseguenze.map(c => {
     const esito = ESITO_LABELS[c.esito] ?? c.esito;
@@ -150,8 +152,9 @@ function buildNarrativeBody(
     ? markdownSection('Eventi del Turno', 2, narrative.eventi_turno.map(e => `- ${e}`).join('\n'))
     : '';
 
+  const seedTitle = isLastTurn ? 'Conclusione Campagna' : 'Aggancio Prossimo Turno';
   const seedSection = narrative.narrative_seed_prossimo_turno
-    ? markdownSection('Aggancio Prossimo Turno', 2, `*${narrative.narrative_seed_prossimo_turno}*`)
+    ? markdownSection(seedTitle, 2, `*${narrative.narrative_seed_prossimo_turno}*`)
     : '';
 
   return markdownSection(

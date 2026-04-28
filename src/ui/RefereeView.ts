@@ -4,7 +4,7 @@ import type { Campagna, CampagnaStato } from '../types';
 import type { RunState } from '../vault/RunStateManager';
 import { loadCampagna } from '../vault/CampaignLoader';
 import { loadRunState } from '../vault/RunStateManager';
-import { STATO_TRANSITIONS, STATO_LABELS, STATO_ACTION_MAP } from '../constants';
+import { STATO_TRANSITIONS, STATO_LABELS, STATO_ACTION_MAP, STATELESS_ACTIONS } from '../constants';
 import { refereeEventBus } from './RefereeEventBus';
 import type { RefereeEvent } from './RefereeEventBus';
 
@@ -75,6 +75,7 @@ export class RefereeView extends ItemView {
       this.renderFlowState(container, campagna.meta.stato, runState);
       this.messagesContainer = this.renderMessagesSection(container);
       this.renderActions(container, campagna.meta.stato, runState);
+      this.renderStatelessActions(container);
     }
   }
 
@@ -175,32 +176,52 @@ export class RefereeView extends ItemView {
     const section = container.createEl('div', { cls: 'bloc-section' });
     section.createEl('h4', { text: 'Azioni' });
 
-    const primaryAction = STATO_ACTION_MAP[stato];
+    const actions = STATO_ACTION_MAP[stato] ?? [];
+    const [first, ...rest] = actions;
 
-    if (runState?.status === 'failed' && primaryAction) {
+    if (runState?.status === 'failed' && first) {
       const btn = section.createEl('button', {
         text: `↩ Riprendi: ${runState.current_step}`,
         cls: 'bloc-btn bloc-btn-error',
       });
       btn.addEventListener('click', () =>
-        (this.app as any).commands.executeCommandById(primaryAction.commandId),
+        (this.app as any).commands.executeCommandById(first.commandId),
       );
-    } else if (primaryAction) {
+    } else if (first) {
       const btn = section.createEl('button', {
-        text: primaryAction.label,
+        text: first.label,
         cls: 'bloc-btn bloc-btn-primary',
       });
       btn.addEventListener('click', () =>
-        (this.app as any).commands.executeCommandById(primaryAction.commandId),
+        (this.app as any).commands.executeCommandById(first.commandId),
       );
+      for (const action of rest) {
+        const secondary = section.createEl('button', {
+          text: action.label,
+          cls: 'bloc-btn bloc-btn-secondary',
+        });
+        secondary.addEventListener('click', () =>
+          (this.app as any).commands.executeCommandById(action.commandId),
+        );
+      }
     }
 
-    const oracoloBtn = section.createEl('button', {
-      text: 'Oracolo',
-      cls: 'bloc-btn bloc-btn-secondary',
-    });
-    oracoloBtn.addEventListener('click', () =>
-      (this.app as any).commands.executeCommandById('bloc-ai-referee:interroga-oracolo'),
-    );
+  }
+
+  private renderStatelessActions(container: HTMLElement): void {
+    const section = container.createEl('div', { cls: 'bloc-section' });
+    section.createEl('h4', { text: 'Comandi' });
+
+    for (const group of STATELESS_ACTIONS) {
+      const details = section.createEl('details', { cls: 'bloc-group' });
+      details.createEl('summary', { text: group.title, cls: 'bloc-group-title' });
+      const grid = details.createEl('div', { cls: 'bloc-cmd-grid' });
+      for (const action of group.actions) {
+        const btn = grid.createEl('button', { text: action.label, cls: 'bloc-btn bloc-btn-cmd' });
+        btn.addEventListener('click', () =>
+          (this.app as any).commands.executeCommandById(action.commandId),
+        );
+      }
+    }
   }
 }

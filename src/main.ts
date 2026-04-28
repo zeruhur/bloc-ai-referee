@@ -31,6 +31,7 @@ import { cmdModificaVantaggi } from './commands/ModificaVantaggi';
 import { cmdFondiFazioni } from './commands/FondiFazioni';
 import { cmdAggiungiNuovaFazione } from './commands/AggiungiNuovaFazione';
 import { cmdScissioneFazione } from './commands/ScissioneFazione';
+import { cmdChiudiCampagna } from './commands/ChiudiCampagna';
 
 export default class BlocPlugin extends Plugin {
   settings: BlocPluginSettings = DEFAULT_SETTINGS;
@@ -234,6 +235,12 @@ export default class BlocPlugin extends Plugin {
       id: 'genera-leader',
       name: 'BLOC: Genera leader fazione',
       callback: () => cmdGeneraLeader(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'chiudi-campagna',
+      name: 'BLOC: Chiudi campagna',
+      callback: () => cmdChiudiCampagna(this.app, this),
     });
   }
 

@@ -17,6 +17,7 @@ export function buildNarrativePrompt(
   compressedDeltas: GameStateDelta[],
   historySummary: string | null = null,
   accordiContext: string | null = null,
+  isLastTurn = false,
 ): { system: string; user: string } {
   const historySection = historySummary
     ? `\n\nSTORIA PREGRESSA (riassunto):\n${historySummary}`
@@ -53,7 +54,11 @@ Per ogni azione genera:
 1. La conseguenza narrativa coerente con l'esito. Usa i nomi leggibili delle fazioni nel testo (es. "${campagna.fazioni[0]?.nome ?? 'nome fazione'}"), non gli id tecnici.
 2. I delta di stato (mc_delta: -1/0/+1, territorio se cambia, note)
 
-Poi indica gli eventi significativi del turno e un narrative_seed di 1-2 frasi per il prossimo turno (max 50 token).
+Poi indica gli eventi significativi del turno e ${
+  isLastTurn
+    ? 'nel campo "narrative_seed_prossimo_turno" scrivi una conclusione della campagna (2-3 frasi che chiudono la storia), NON un aggancio al prossimo turno perché questo è il turno finale.'
+    : 'un narrative_seed di 1-2 frasi per il prossimo turno (max 50 token).'
+}
 ATTENZIONE: nel campo JSON "fazione" di ogni conseguenza usa sempre l'id tecnico (es. "${campagna.fazioni[0]?.id ?? 'id-fazione'}").`;
 
   return { system, user };

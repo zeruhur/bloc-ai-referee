@@ -72,14 +72,61 @@ export const STATO_LABELS: Record<CampagnaStato, string> = {
   chiuso:           '7 · Turno chiuso',
 };
 
-export const STATO_ACTION_MAP: Partial<Record<CampagnaStato, { label: string; commandId: string }>> = {
-  raccolta:         { label: '⚡ Genera matrice',            commandId: 'bloc-ai-referee:genera-matrice' },
-  matrice_generata: { label: '⚡ Auto contro-argomentazione', commandId: 'bloc-ai-referee:auto-contro-argomentazione' },
-  contro_args:      { label: '⚡ Valuta azioni',             commandId: 'bloc-ai-referee:valuta-azioni' },
-  valutazione:      { label: '⚡ Esegui tiri',               commandId: 'bloc-ai-referee:esegui-tiri' },
-  tiri:             { label: '⚡ Genera conseguenze',        commandId: 'bloc-ai-referee:genera-conseguenze' },
-  review:           { label: '✓ Chiudi turno',              commandId: 'bloc-ai-referee:chiudi-turno' },
+export interface StatoAction { label: string; commandId: string }
+
+export const STATO_ACTION_MAP: Partial<Record<CampagnaStato, StatoAction[]>> = {
+  raccolta: [
+    { label: '⚡ Dichiara azione',  commandId: 'bloc-ai-referee:dichiara-azione' },
+    { label: '⚡ Genera matrice',   commandId: 'bloc-ai-referee:genera-matrice' },
+  ],
+  matrice_generata: [{ label: '⚡ Auto contro-argomentazione', commandId: 'bloc-ai-referee:auto-contro-argomentazione' }],
+  contro_args:      [{ label: '⚡ Valuta azioni',              commandId: 'bloc-ai-referee:valuta-azioni' }],
+  valutazione:      [{ label: '⚡ Esegui tiri',                commandId: 'bloc-ai-referee:esegui-tiri' }],
+  tiri:             [{ label: '⚡ Genera conseguenze',         commandId: 'bloc-ai-referee:genera-conseguenze' }],
+  review:           [{ label: '✓ Chiudi turno',               commandId: 'bloc-ai-referee:chiudi-turno' }],
 };
+
+export interface ActionGroup { title: string; actions: StatoAction[] }
+
+export const STATELESS_ACTIONS: ActionGroup[] = [
+  {
+    title: 'Strumenti',
+    actions: [
+      { label: 'Stato campagna',        commandId: 'bloc-ai-referee:stato-campagna' },
+      { label: 'Oracolo',               commandId: 'bloc-ai-referee:interroga-oracolo' },
+      { label: 'Verifica leader',       commandId: 'bloc-ai-referee:verifica-leader' },
+      { label: 'Elimina leader',        commandId: 'bloc-ai-referee:elimina-leader' },
+      { label: 'Genera leader',         commandId: 'bloc-ai-referee:genera-leader' },
+      { label: 'Azione latente',        commandId: 'bloc-ai-referee:attiva-azione-latente' },
+      { label: 'Chiudi campagna',       commandId: 'bloc-ai-referee:chiudi-campagna' },
+    ],
+  },
+  {
+    title: 'Fazioni',
+    actions: [
+      { label: 'Aggiungi fazione',      commandId: 'bloc-ai-referee:aggiungi-nuova-fazione' },
+      { label: 'Elimina fazione',       commandId: 'bloc-ai-referee:elimina-fazione' },
+      { label: 'Ripristina fazione',    commandId: 'bloc-ai-referee:ripristina-fazione' },
+      { label: 'Sospendi fazione',      commandId: 'bloc-ai-referee:sospendi-fazione' },
+      { label: 'Riattiva fazione',      commandId: 'bloc-ai-referee:riattiva-fazione' },
+      { label: 'Modifica profilo',      commandId: 'bloc-ai-referee:modifica-fazione' },
+      { label: 'Modifica vantaggi',     commandId: 'bloc-ai-referee:modifica-vantaggi-fazione' },
+      { label: 'Fondi fazioni',         commandId: 'bloc-ai-referee:fondi-fazioni' },
+      { label: 'Scindi fazione',        commandId: 'bloc-ai-referee:scindi-fazione' },
+      { label: 'Converti a IA',         commandId: 'bloc-ai-referee:converti-a-ia' },
+      { label: 'Converti a umano',      commandId: 'bloc-ai-referee:converti-a-umano' },
+    ],
+  },
+  {
+    title: 'Accordi',
+    actions: [
+      { label: 'Accordo privato',       commandId: 'bloc-ai-referee:registra-accordo-privato' },
+      { label: 'Accordo pubblico',      commandId: 'bloc-ai-referee:registra-accordo-pubblico' },
+      { label: 'Dichiara tradimento',   commandId: 'bloc-ai-referee:dichiara-tradimento' },
+      { label: 'Sciogli accordo',       commandId: 'bloc-ai-referee:sciogli-accordo' },
+    ],
+  },
+];
 
 export const LEADER_AVAILABILITY_THRESHOLD = 4;
 
