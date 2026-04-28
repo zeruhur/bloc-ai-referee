@@ -5,11 +5,13 @@ import { loadActiveCampagna } from './shared';
 import { patchFazioneLeader, patchFazioneMC } from '../vault/CampaignWriter';
 import { activeFazioni } from '../utils/factionUtils';
 
-class FazionePickerModal extends SuggestModal<FazioneConfig> {
+class LeaderPickerModal extends SuggestModal<FazioneConfig> {
+  private chosen: FazioneConfig | null = null;
+
   constructor(
     app: App,
     private fazioni: FazioneConfig[],
-    private resolve: (f: FazioneConfig) => void,
+    private resolve: (f: FazioneConfig | null) => void,
   ) {
     super(app);
   }
@@ -23,7 +25,11 @@ class FazionePickerModal extends SuggestModal<FazioneConfig> {
   }
 
   onChooseSuggestion(fazione: FazioneConfig): void {
-    this.resolve(fazione);
+    this.chosen = fazione;
+  }
+
+  onClose(): void {
+    setTimeout(() => this.resolve(this.chosen), 0);
   }
 }
 
@@ -37,12 +43,9 @@ export async function cmdEliminaLeader(app: App, plugin: BlocPlugin): Promise<vo
     return;
   }
 
-  const fazione = await new Promise<FazioneConfig | null>((resolve) => {
-    const modal = new FazionePickerModal(app, candidati, resolve);
-    modal.onClose = () => resolve(null);
-    modal.open();
-  });
-
+  const fazione = await new Promise<FazioneConfig | null>(resolve =>
+    new LeaderPickerModal(app, candidati, resolve).open(),
+  );
   if (!fazione) return;
 
   const { slug } = campagna.meta;

@@ -1,33 +1,10 @@
-import { App, Modal, Notice, Setting, SuggestModal } from 'obsidian';
+import { App, Modal, Notice, Setting } from 'obsidian';
 import type { FazioneConfig, MC } from '../types';
 import type BlocPlugin from '../main';
 import { loadActiveCampagna } from './shared';
 import { patchFazioneVantaggi, setFazioneMC, patchFazioneEliminata } from '../vault/CampaignWriter';
 import { activeFazioni } from '../utils/factionUtils';
-
-class FazionePickerModal extends SuggestModal<FazioneConfig> {
-  constructor(
-    app: App,
-    private fazioni: FazioneConfig[],
-    private resolve: (f: FazioneConfig) => void,
-    private placeholder = '',
-  ) {
-    super(app);
-    if (placeholder) this.setPlaceholder(placeholder);
-  }
-
-  getSuggestions(query: string): FazioneConfig[] {
-    return this.fazioni.filter(f => f.nome.toLowerCase().includes(query.toLowerCase()));
-  }
-
-  renderSuggestion(fazione: FazioneConfig, el: HTMLElement): void {
-    el.createEl('div', { text: fazione.nome });
-  }
-
-  onChooseSuggestion(fazione: FazioneConfig): void {
-    this.resolve(fazione);
-  }
-}
+import { pickFazione } from '../ui/FazionePickerModal';
 
 class FusioneModal extends Modal {
   private selectedVantaggi: Set<string>;
@@ -41,7 +18,6 @@ class FusioneModal extends Modal {
     private onConfirm: (vantaggi: string[], svantaggi: string[], mc: MC) => void,
   ) {
     super(app);
-    // Default: tutti i vantaggi di entrambe selezionati
     this.selectedVantaggi = new Set([...fazioneA.vantaggi, ...fazioneB.vantaggi]);
     this.selectedSvantaggi = new Set([...fazioneA.svantaggi, ...fazioneB.svantaggi]);
     this.mc = Math.max(fazioneA.mc, fazioneB.mc) as MC;
@@ -55,7 +31,6 @@ class FusioneModal extends Modal {
       cls: 'setting-item-description',
     });
 
-    // Vantaggi combinati
     if (this.selectedVantaggi.size > 0) {
       contentEl.createEl('h3', { text: 'Vantaggi' });
       for (const v of this.selectedVantaggi) {
@@ -69,7 +44,6 @@ class FusioneModal extends Modal {
       }
     }
 
-    // Svantaggi combinati
     if (this.selectedSvantaggi.size > 0) {
       contentEl.createEl('h3', { text: 'Svantaggi' });
       for (const v of this.selectedSvantaggi) {
@@ -83,7 +57,6 @@ class FusioneModal extends Modal {
       }
     }
 
-    // MC risultante
     const mcSetting = new Setting(contentEl)
       .setName('MC risultante')
       .setDesc(`Attuale: ${this.mc > 0 ? '+' : ''}${this.mc} (suggerito: max tra i due)`);
@@ -123,19 +96,11 @@ export async function cmdFondiFazioni(app: App, plugin: BlocPlugin): Promise<voi
     return;
   }
 
-  const fazioneA = await new Promise<FazioneConfig | null>((resolve) => {
-    const modal = new FazionePickerModal(app, tutte, resolve, 'Seleziona fazione sopravvissuta (A)…');
-    modal.onClose = () => resolve(null);
-    modal.open();
-  });
+  const fazioneA = await pickFazione(app, tutte, 'Seleziona fazione sopravvissuta (A)…');
   if (!fazioneA) return;
 
   const candidatiB = tutte.filter(f => f.id !== fazioneA.id);
-  const fazioneB = await new Promise<FazioneConfig | null>((resolve) => {
-    const modal = new FazionePickerModal(app, candidatiB, resolve, `Seleziona fazione da assorbire in "${fazioneA.nome}"…`);
-    modal.onClose = () => resolve(null);
-    modal.open();
-  });
+  const fazioneB = await pickFazione(app, candidatiB, `Seleziona fazione da assorbire in "${fazioneA.nome}"…`);
   if (!fazioneB) return;
 
   await new Promise<void>((resolve) => {

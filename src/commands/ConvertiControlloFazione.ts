@@ -6,10 +6,12 @@ import { patchFazioneTipo } from '../vault/CampaignWriter';
 import { activeFazioni } from '../utils/factionUtils';
 
 class FazionePickerModal extends SuggestModal<FazioneConfig> {
+  private chosen: FazioneConfig | null = null;
+
   constructor(
     app: App,
     private fazioni: FazioneConfig[],
-    private resolve: (f: FazioneConfig) => void,
+    private resolve: (f: FazioneConfig | null) => void,
   ) {
     super(app);
   }
@@ -24,8 +26,16 @@ class FazionePickerModal extends SuggestModal<FazioneConfig> {
   }
 
   onChooseSuggestion(fazione: FazioneConfig): void {
-    this.resolve(fazione);
+    this.chosen = fazione;
   }
+
+  onClose(): void {
+    setTimeout(() => this.resolve(this.chosen), 0);
+  }
+}
+
+function pickFazioneTipo(app: App, fazioni: FazioneConfig[]): Promise<FazioneConfig | null> {
+  return new Promise(resolve => new FazionePickerModal(app, fazioni, resolve).open());
 }
 
 export async function cmdConvertiAIA(app: App, plugin: BlocPlugin): Promise<void> {
@@ -38,12 +48,7 @@ export async function cmdConvertiAIA(app: App, plugin: BlocPlugin): Promise<void
     return;
   }
 
-  const fazione = await new Promise<FazioneConfig | null>((resolve) => {
-    const modal = new FazionePickerModal(app, candidati, resolve);
-    modal.onClose = () => resolve(null);
-    modal.open();
-  });
-
+  const fazione = await pickFazioneTipo(app, candidati);
   if (!fazione) return;
 
   const { slug } = campagna.meta;
@@ -65,12 +70,7 @@ export async function cmdConvertiAUmano(app: App, plugin: BlocPlugin): Promise<v
     return;
   }
 
-  const fazione = await new Promise<FazioneConfig | null>((resolve) => {
-    const modal = new FazionePickerModal(app, candidati, resolve);
-    modal.onClose = () => resolve(null);
-    modal.open();
-  });
-
+  const fazione = await pickFazioneTipo(app, candidati);
   if (!fazione) return;
 
   const { slug } = campagna.meta;

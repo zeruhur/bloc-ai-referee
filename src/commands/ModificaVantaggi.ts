@@ -1,31 +1,10 @@
-import { App, Modal, Notice, Setting, SuggestModal } from 'obsidian';
+import { App, Modal, Notice, Setting } from 'obsidian';
 import type { FazioneConfig } from '../types';
 import type BlocPlugin from '../main';
 import { loadActiveCampagna } from './shared';
 import { patchFazioneVantaggi } from '../vault/CampaignWriter';
 import { activeFazioni } from '../utils/factionUtils';
-
-class FazionePickerModal extends SuggestModal<FazioneConfig> {
-  constructor(
-    app: App,
-    private fazioni: FazioneConfig[],
-    private resolve: (f: FazioneConfig) => void,
-  ) {
-    super(app);
-  }
-
-  getSuggestions(query: string): FazioneConfig[] {
-    return this.fazioni.filter(f => f.nome.toLowerCase().includes(query.toLowerCase()));
-  }
-
-  renderSuggestion(fazione: FazioneConfig, el: HTMLElement): void {
-    el.createEl('div', { text: fazione.nome });
-  }
-
-  onChooseSuggestion(fazione: FazioneConfig): void {
-    this.resolve(fazione);
-  }
-}
+import { pickFazione } from '../ui/FazionePickerModal';
 
 class ModificaVantaggiModal extends Modal {
   private vantaggi: string;
@@ -85,12 +64,7 @@ export async function cmdModificaVantaggi(app: App, plugin: BlocPlugin): Promise
     return;
   }
 
-  const fazione = await new Promise<FazioneConfig | null>((resolve) => {
-    const modal = new FazionePickerModal(app, candidati, resolve);
-    modal.onClose = () => resolve(null);
-    modal.open();
-  });
-
+  const fazione = await pickFazione(app, candidati, 'Seleziona fazione…');
   if (!fazione) return;
 
   await new Promise<void>((resolve) => {

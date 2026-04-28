@@ -1,32 +1,10 @@
-import { App, Notice, SuggestModal } from 'obsidian';
-import type { FazioneConfig } from '../types';
+import { App, Notice } from 'obsidian';
 import type BlocPlugin from '../main';
 import { loadActiveCampagna } from './shared';
 import { pushNuovaFazione, patchFazioneVantaggi } from '../vault/CampaignWriter';
 import { activeFazioni } from '../utils/factionUtils';
 import { NuovaFazioneModal } from '../ui/modals/NuovaFazioneModal';
-
-class FazionePickerModal extends SuggestModal<FazioneConfig> {
-  constructor(
-    app: App,
-    private fazioni: FazioneConfig[],
-    private resolve: (f: FazioneConfig) => void,
-  ) {
-    super(app);
-  }
-
-  getSuggestions(query: string): FazioneConfig[] {
-    return this.fazioni.filter(f => f.nome.toLowerCase().includes(query.toLowerCase()));
-  }
-
-  renderSuggestion(fazione: FazioneConfig, el: HTMLElement): void {
-    el.createEl('div', { text: fazione.nome });
-  }
-
-  onChooseSuggestion(fazione: FazioneConfig): void {
-    this.resolve(fazione);
-  }
-}
+import { pickFazione } from '../ui/FazionePickerModal';
 
 export async function cmdScissioneFazione(app: App, plugin: BlocPlugin): Promise<void> {
   const campagna = await loadActiveCampagna(app, plugin);
@@ -38,13 +16,7 @@ export async function cmdScissioneFazione(app: App, plugin: BlocPlugin): Promise
     return;
   }
 
-  const sorgente = await new Promise<FazioneConfig | null>((resolve) => {
-    const modal = new FazionePickerModal(app, candidati, resolve);
-    modal.setPlaceholder('Seleziona la fazione sorgente da scindere…');
-    modal.onClose = () => resolve(null);
-    modal.open();
-  });
-
+  const sorgente = await pickFazione(app, candidati, 'Seleziona la fazione sorgente da scindere…');
   if (!sorgente) return;
 
   await new Promise<void>((resolve) => {
@@ -60,7 +32,6 @@ export async function cmdScissioneFazione(app: App, plugin: BlocPlugin): Promise
         try {
           await pushNuovaFazione(app, campagna.meta.slug, nuovaFazione);
 
-          // Aggiorna la fazione sorgente rimuovendo i vantaggi trasferiti
           if (vantaggiTrasferiti.length > 0 || svantaggiTrasferiti.length > 0) {
             const vantaggiRimasti = sorgente.vantaggi.filter(v => !vantaggiTrasferiti.includes(v));
             const svantaggiRimasti = sorgente.svantaggi.filter(v => !svantaggiTrasferiti.includes(v));

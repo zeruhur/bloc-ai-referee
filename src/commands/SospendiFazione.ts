@@ -1,31 +1,9 @@
-import { App, Notice, SuggestModal } from 'obsidian';
-import type { FazioneConfig } from '../types';
+import { App, Notice } from 'obsidian';
 import type BlocPlugin from '../main';
 import { loadActiveCampagna } from './shared';
 import { patchFazioneSospesa } from '../vault/CampaignWriter';
 import { activeFazioni } from '../utils/factionUtils';
-
-class FazionePickerModal extends SuggestModal<FazioneConfig> {
-  constructor(
-    app: App,
-    private fazioni: FazioneConfig[],
-    private resolve: (f: FazioneConfig) => void,
-  ) {
-    super(app);
-  }
-
-  getSuggestions(query: string): FazioneConfig[] {
-    return this.fazioni.filter(f => f.nome.toLowerCase().includes(query.toLowerCase()));
-  }
-
-  renderSuggestion(fazione: FazioneConfig, el: HTMLElement): void {
-    el.createEl('div', { text: fazione.nome });
-  }
-
-  onChooseSuggestion(fazione: FazioneConfig): void {
-    this.resolve(fazione);
-  }
-}
+import { pickFazione } from '../ui/FazionePickerModal';
 
 export async function cmdSospendiFazione(app: App, plugin: BlocPlugin): Promise<void> {
   const campagna = await loadActiveCampagna(app, plugin);
@@ -37,12 +15,7 @@ export async function cmdSospendiFazione(app: App, plugin: BlocPlugin): Promise<
     return;
   }
 
-  const fazione = await new Promise<FazioneConfig | null>((resolve) => {
-    const modal = new FazionePickerModal(app, candidati, resolve);
-    modal.onClose = () => resolve(null);
-    modal.open();
-  });
-
+  const fazione = await pickFazione(app, candidati, 'Seleziona fazione da sospendere…');
   if (!fazione) return;
 
   try {
@@ -63,12 +36,7 @@ export async function cmdRiattivaSospesa(app: App, plugin: BlocPlugin): Promise<
     return;
   }
 
-  const fazione = await new Promise<FazioneConfig | null>((resolve) => {
-    const modal = new FazionePickerModal(app, candidati, resolve);
-    modal.onClose = () => resolve(null);
-    modal.open();
-  });
-
+  const fazione = await pickFazione(app, candidati, 'Seleziona fazione da riattivare…');
   if (!fazione) return;
 
   try {
