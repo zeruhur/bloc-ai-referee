@@ -46,8 +46,12 @@ export async function cmdEliminaFazione(app: App, plugin: BlocPlugin): Promise<v
   if (!fazione) return;
 
   const { slug } = campagna.meta;
-  await patchFazioneEliminata(app, slug, fazione.id, true);
-  new Notice(`Fazione "${fazione.nome}" eliminata. Usa "Ripristina fazione" per annullare.`);
+  try {
+    await patchFazioneEliminata(app, slug, fazione.id, true);
+    new Notice(`Fazione "${fazione.nome}" eliminata. Usa "Ripristina fazione" per annullare.`);
+  } catch (e) {
+    new Notice(`Errore: ${(e as Error).message}`);
+  }
 }
 
 export async function cmdRipristinaFazione(app: App, plugin: BlocPlugin): Promise<void> {
@@ -69,6 +73,10 @@ export async function cmdRipristinaFazione(app: App, plugin: BlocPlugin): Promis
   if (!fazione) return;
 
   const { slug } = campagna.meta;
-  await patchFazioneEliminata(app, slug, fazione.id, false);
-  new Notice(`Fazione "${fazione.nome}" ripristinata.`);
+  try {
+    await patchFazioneEliminata(app, slug, fazione.id, false);
+    new Notice(`Fazione "${fazione.nome}" ripristinata.`);
+  } catch (e) {
+    new Notice(`Errore: ${(e as Error).message}`);
+  }
 }

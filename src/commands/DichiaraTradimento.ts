@@ -85,8 +85,12 @@ export async function cmdDichiaraTradimento(app: App, plugin: BlocPlugin): Promi
   ];
 
   new TradimentoModal(app, attivi, turno_corrente, async (accordoId, fazione) => {
-    await patchAccordoStato(app, slug, accordoId, 'violato', { turno: turno_corrente, fazione });
-    await patchFazioneMC(app, slug, fazione, -1);
-    new Notice(`Accordo ${accordoId} violato. MC di ${fazione} ridotto di 1.`);
+    try {
+      await patchAccordoStato(app, slug, accordoId, 'violato', { turno: turno_corrente, fazione });
+      await patchFazioneMC(app, slug, fazione, -1);
+      new Notice(`Accordo ${accordoId} violato. MC di ${fazione} ridotto di 1.`);
+    } catch (e) {
+      new Notice(`Errore: ${(e as Error).message}`);
+    }
   }).open();
 }

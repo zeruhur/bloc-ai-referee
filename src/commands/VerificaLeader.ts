@@ -21,10 +21,15 @@ export async function cmdVerificaLeader(app: App, plugin: BlocPlugin): Promise<v
   const disponibili: string[] = [];
   const seed = Date.now();
 
-  for (const fazione of fazioniConLeader) {
-    const avail = leaderAvailability(fazione.mc, seed + campagna.fazioni.indexOf(fazione));
-    await patchFazioneLeader(app, slug, fazione.id, avail);
-    if (avail) disponibili.push(fazione.nome);
+  try {
+    for (const fazione of fazioniConLeader) {
+      const avail = leaderAvailability(fazione.mc, seed + campagna.fazioni.indexOf(fazione));
+      await patchFazioneLeader(app, slug, fazione.id, avail);
+      if (avail) disponibili.push(fazione.nome);
+    }
+  } catch (e) {
+    new Notice(`Errore: ${(e as Error).message}`);
+    return;
   }
 
   const msg = disponibili.length > 0

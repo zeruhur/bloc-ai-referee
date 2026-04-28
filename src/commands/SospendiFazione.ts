@@ -45,8 +45,12 @@ export async function cmdSospendiFazione(app: App, plugin: BlocPlugin): Promise<
 
   if (!fazione) return;
 
-  await patchFazioneSospesa(app, campagna.meta.slug, fazione.id, true);
-  new Notice(`"${fazione.nome}" sospesa. Non parteciperà al prossimo Dichiara azione.`);
+  try {
+    await patchFazioneSospesa(app, campagna.meta.slug, fazione.id, true);
+    new Notice(`"${fazione.nome}" sospesa. Non parteciperà al prossimo Dichiara azione.`);
+  } catch (e) {
+    new Notice(`Errore: ${(e as Error).message}`);
+  }
 }
 
 export async function cmdRiattivaSospesa(app: App, plugin: BlocPlugin): Promise<void> {
@@ -67,6 +71,10 @@ export async function cmdRiattivaSospesa(app: App, plugin: BlocPlugin): Promise<
 
   if (!fazione) return;
 
-  await patchFazioneSospesa(app, campagna.meta.slug, fazione.id, false);
-  new Notice(`"${fazione.nome}" riattivata.`);
+  try {
+    await patchFazioneSospesa(app, campagna.meta.slug, fazione.id, false);
+    new Notice(`"${fazione.nome}" riattivata.`);
+  } catch (e) {
+    new Notice(`Errore: ${(e as Error).message}`);
+  }
 }

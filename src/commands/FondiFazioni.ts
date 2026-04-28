@@ -141,10 +141,14 @@ export async function cmdFondiFazioni(app: App, plugin: BlocPlugin): Promise<voi
   await new Promise<void>((resolve) => {
     const modal = new FusioneModal(app, fazioneA, fazioneB, async (vantaggi, svantaggi, mc) => {
       const { slug } = campagna.meta;
-      await patchFazioneVantaggi(app, slug, fazioneA.id, vantaggi, svantaggi);
-      await setFazioneMC(app, slug, fazioneA.id, mc);
-      await patchFazioneEliminata(app, slug, fazioneB.id, true);
-      new Notice(`"${fazioneB.nome}" fusa in "${fazioneA.nome}". MC aggiornato a ${mc > 0 ? '+' : ''}${mc}.`);
+      try {
+        await patchFazioneVantaggi(app, slug, fazioneA.id, vantaggi, svantaggi);
+        await setFazioneMC(app, slug, fazioneA.id, mc);
+        await patchFazioneEliminata(app, slug, fazioneB.id, true);
+        new Notice(`"${fazioneB.nome}" fusa in "${fazioneA.nome}". MC aggiornato a ${mc > 0 ? '+' : ''}${mc}.`);
+      } catch (e) {
+        new Notice(`Errore: ${(e as Error).message}`);
+      }
       resolve();
     });
     modal.onClose = () => resolve();

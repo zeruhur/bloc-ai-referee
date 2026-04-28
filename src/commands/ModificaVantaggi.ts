@@ -95,8 +95,12 @@ export async function cmdModificaVantaggi(app: App, plugin: BlocPlugin): Promise
 
   await new Promise<void>((resolve) => {
     const modal = new ModificaVantaggiModal(app, fazione, async (vantaggi, svantaggi) => {
-      await patchFazioneVantaggi(app, campagna.meta.slug, fazione.id, vantaggi, svantaggi);
-      new Notice(`Vantaggi di "${fazione.nome}" aggiornati.`);
+      try {
+        await patchFazioneVantaggi(app, campagna.meta.slug, fazione.id, vantaggi, svantaggi);
+        new Notice(`Vantaggi di "${fazione.nome}" aggiornati.`);
+      } catch (e) {
+        new Notice(`Errore: ${(e as Error).message}`);
+      }
       resolve();
     });
     modal.onClose = () => resolve();

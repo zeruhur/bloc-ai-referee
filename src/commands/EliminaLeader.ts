@@ -46,7 +46,11 @@ export async function cmdEliminaLeader(app: App, plugin: BlocPlugin): Promise<vo
   if (!fazione) return;
 
   const { slug } = campagna.meta;
-  await patchFazioneLeader(app, slug, fazione.id, false);
-  await patchFazioneMC(app, slug, fazione.id, -1);
-  new Notice(`Leader eliminato. MC -1 per ${fazione.nome}.`);
+  try {
+    await patchFazioneLeader(app, slug, fazione.id, false);
+    await patchFazioneMC(app, slug, fazione.id, -1);
+    new Notice(`Leader eliminato. MC -1 per ${fazione.nome}.`);
+  } catch (e) {
+    new Notice(`Errore: ${(e as Error).message}`);
+  }
 }

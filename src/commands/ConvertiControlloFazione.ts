@@ -47,8 +47,12 @@ export async function cmdConvertiAIA(app: App, plugin: BlocPlugin): Promise<void
   if (!fazione) return;
 
   const { slug } = campagna.meta;
-  await patchFazioneTipo(app, slug, fazione.id, 'ia');
-  new Notice(`"${fazione.nome}" ora è a controllo IA. Le azioni saranno auto-generate al prossimo Dichiara azione.`);
+  try {
+    await patchFazioneTipo(app, slug, fazione.id, 'ia');
+    new Notice(`"${fazione.nome}" ora è a controllo IA. Le azioni saranno auto-generate al prossimo Dichiara azione.`);
+  } catch (e) {
+    new Notice(`Errore: ${(e as Error).message}`);
+  }
 }
 
 export async function cmdConvertiAUmano(app: App, plugin: BlocPlugin): Promise<void> {
@@ -70,6 +74,10 @@ export async function cmdConvertiAUmano(app: App, plugin: BlocPlugin): Promise<v
   if (!fazione) return;
 
   const { slug } = campagna.meta;
-  await patchFazioneTipo(app, slug, fazione.id, 'normale');
-  new Notice(`"${fazione.nome}" ora è a controllo umano.`);
+  try {
+    await patchFazioneTipo(app, slug, fazione.id, 'normale');
+    new Notice(`"${fazione.nome}" ora è a controllo umano.`);
+  } catch (e) {
+    new Notice(`Errore: ${(e as Error).message}`);
+  }
 }

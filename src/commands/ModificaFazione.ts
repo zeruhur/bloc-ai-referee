@@ -95,8 +95,12 @@ export async function cmdModificaFazione(app: App, plugin: BlocPlugin): Promise<
 
   await new Promise<void>((resolve) => {
     const modal = new ModificaProfiloModal(app, fazione, async (patch) => {
-      await patchFazioneProfilo(app, campagna.meta.slug, fazione.id, patch);
-      new Notice(`Profilo di "${fazione.nome}" aggiornato.`);
+      try {
+        await patchFazioneProfilo(app, campagna.meta.slug, fazione.id, patch);
+        new Notice(`Profilo di "${fazione.nome}" aggiornato.`);
+      } catch (e) {
+        new Notice(`Errore: ${(e as Error).message}`);
+      }
       resolve();
     });
     modal.onClose = () => resolve();

@@ -46,10 +46,9 @@ export async function patchFazioneLeader(
 ): Promise<void> {
   const data = await readRaw(app, slug);
   const fazioni = data['fazioni'] as Array<Record<string, unknown>>;
-  const fazione = fazioni.find(f => f['id'] === fazioneId);
-  if (fazione) {
-    (fazione['leader'] as Record<string, unknown>)['presente'] = presente;
-  }
+  const fazione = fazioni.find(f => String(f['id']) === String(fazioneId));
+  if (!fazione) throw new Error(`Fazione non trovata: ${fazioneId}`);
+  (fazione['leader'] as Record<string, unknown>)['presente'] = presente;
   await writeRaw(app, slug, data);
 }
 
@@ -61,10 +60,9 @@ export async function patchFazioneLeaderData(
 ): Promise<void> {
   const data = await readRaw(app, slug);
   const fazioni = data['fazioni'] as Array<Record<string, unknown>>;
-  const fazione = fazioni.find(f => f['id'] === fazioneId);
-  if (fazione) {
-    fazione['leader'] = leader;
-  }
+  const fazione = fazioni.find(f => String(f['id']) === String(fazioneId));
+  if (!fazione) throw new Error(`Fazione non trovata: ${fazioneId}`);
+  fazione['leader'] = leader;
   await writeRaw(app, slug, data);
 }
 
@@ -76,11 +74,10 @@ export async function patchFazioneMC(
 ): Promise<void> {
   const data = await readRaw(app, slug);
   const fazioni = data['fazioni'] as Array<Record<string, unknown>>;
-  const fazione = fazioni.find(f => f['id'] === fazioneId);
-  if (fazione) {
-    const currentMc = (fazione['mc'] as number) ?? 0;
-    fazione['mc'] = Math.max(-1, Math.min(1, currentMc + mcDelta));
-  }
+  const fazione = fazioni.find(f => String(f['id']) === String(fazioneId));
+  if (!fazione) throw new Error(`Fazione non trovata: ${fazioneId}`);
+  const currentMc = (fazione['mc'] as number) ?? 0;
+  fazione['mc'] = Math.max(-1, Math.min(1, currentMc + mcDelta));
   await writeRaw(app, slug, data);
 }
 
@@ -93,11 +90,10 @@ export async function patchFazioneVantaggi(
 ): Promise<void> {
   const data = await readRaw(app, slug);
   const fazioni = data['fazioni'] as Array<Record<string, unknown>>;
-  const fazione = fazioni.find(f => f['id'] === fazioneId);
-  if (fazione) {
-    fazione['vantaggi'] = vantaggi;
-    fazione['svantaggi'] = svantaggi;
-  }
+  const fazione = fazioni.find(f => String(f['id']) === String(fazioneId));
+  if (!fazione) throw new Error(`Fazione non trovata: ${fazioneId}`);
+  fazione['vantaggi'] = vantaggi;
+  fazione['svantaggi'] = svantaggi;
   await writeRaw(app, slug, data);
 }
 
@@ -109,8 +105,9 @@ export async function setFazioneMC(
 ): Promise<void> {
   const data = await readRaw(app, slug);
   const fazioni = data['fazioni'] as Array<Record<string, unknown>>;
-  const fazione = fazioni.find(f => f['id'] === fazioneId);
-  if (fazione) fazione['mc'] = mc;
+  const fazione = fazioni.find(f => String(f['id']) === String(fazioneId));
+  if (!fazione) throw new Error(`Fazione non trovata: ${fazioneId}`);
+  fazione['mc'] = mc;
   await writeRaw(app, slug, data);
 }
 
@@ -122,12 +119,11 @@ export async function patchFazioneProfilo(
 ): Promise<void> {
   const data = await readRaw(app, slug);
   const fazioni = data['fazioni'] as Array<Record<string, unknown>>;
-  const fazione = fazioni.find(f => f['id'] === fazioneId);
-  if (fazione) {
-    if (patch.nome !== undefined) fazione['nome'] = patch.nome;
-    if (patch.obiettivo !== undefined) fazione['obiettivo'] = patch.obiettivo;
-    if (patch.concetto !== undefined) fazione['concetto'] = patch.concetto;
-  }
+  const fazione = fazioni.find(f => String(f['id']) === String(fazioneId));
+  if (!fazione) throw new Error(`Fazione non trovata: ${fazioneId}`);
+  if (patch.nome !== undefined) fazione['nome'] = patch.nome;
+  if (patch.obiettivo !== undefined) fazione['obiettivo'] = patch.obiettivo;
+  if (patch.concetto !== undefined) fazione['concetto'] = patch.concetto;
   await writeRaw(app, slug, data);
 }
 
@@ -139,8 +135,9 @@ export async function patchFazioneSospesa(
 ): Promise<void> {
   const data = await readRaw(app, slug);
   const fazioni = data['fazioni'] as Array<Record<string, unknown>>;
-  const fazione = fazioni.find(f => f['id'] === fazioneId);
-  if (fazione) fazione['sospesa'] = sospesa;
+  const fazione = fazioni.find(f => String(f['id']) === String(fazioneId));
+  if (!fazione) throw new Error(`Fazione non trovata: ${fazioneId}`);
+  fazione['sospesa'] = sospesa;
   await writeRaw(app, slug, data);
 }
 
@@ -152,8 +149,9 @@ export async function patchFazioneEliminata(
 ): Promise<void> {
   const data = await readRaw(app, slug);
   const fazioni = data['fazioni'] as Array<Record<string, unknown>>;
-  const fazione = fazioni.find(f => f['id'] === fazioneId);
-  if (fazione) fazione['eliminata'] = eliminata;
+  const fazione = fazioni.find(f => String(f['id']) === String(fazioneId));
+  if (!fazione) throw new Error(`Fazione non trovata: ${fazioneId}`);
+  fazione['eliminata'] = eliminata;
   await writeRaw(app, slug, data);
 }
 
@@ -165,8 +163,9 @@ export async function patchFazioneTipo(
 ): Promise<void> {
   const data = await readRaw(app, slug);
   const fazioni = data['fazioni'] as Array<Record<string, unknown>>;
-  const fazione = fazioni.find(f => f['id'] === fazioneId);
-  if (fazione) fazione['tipo'] = tipo;
+  const fazione = fazioni.find(f => String(f['id']) === String(fazioneId));
+  if (!fazione) throw new Error(`Fazione non trovata: ${fazioneId}`);
+  fazione['tipo'] = tipo;
   await writeRaw(app, slug, data);
 }
 
