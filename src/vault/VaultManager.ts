@@ -39,6 +39,10 @@ export function secretActionFilePath(slug: string, turno: number, fazioneId: str
   return `${turnPath(slug, turno)}/${ACTION_FILE_PREFIX}${fazioneId}${SECRET_ACTION_SUFFIX}.md`;
 }
 
+export function leaderActionFilePath(slug: string, turno: number, fazioneId: string): string {
+  return `${turnPath(slug, turno)}/${ACTION_FILE_PREFIX}${fazioneId}-leader.md`;
+}
+
 export function matrixFilePath(slug: string, turno: number): string {
   return `${turnPath(slug, turno)}/${MATRIX_FILE}`;
 }
@@ -83,9 +87,12 @@ export async function writeActionFile(
   }
   await ensureTurnFolder(app, slug, turno);
   const isSecret = action.categoria_azione === 'segreta';
+  const isLeader = action.tipo_azione === 'leader';
   const path = isSecret
     ? secretActionFilePath(slug, turno, action.fazione)
-    : actionFilePath(slug, turno, action.fazione);
+    : isLeader
+      ? leaderActionFilePath(slug, turno, action.fazione)
+      : actionFilePath(slug, turno, action.fazione);
   const { dettaglio_narrativo, ...llmFields } = action;
   const frontmatterData = dettaglio_narrativo
     ? { ...llmFields, dettaglio_narrativo }
