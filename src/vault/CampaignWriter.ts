@@ -1,5 +1,5 @@
 import type { App } from 'obsidian';
-import type { Campagna, CampagnaStato, GameStateDelta } from '../types';
+import type { Campagna, CampagnaStato, GameStateDelta, TipoFazione } from '../types';
 import { parseYaml, stringifyYaml } from '../utils/yaml';
 import { CAMPAGNE_FOLDER, CAMPAGNA_FILE } from '../constants';
 
@@ -80,6 +80,32 @@ export async function patchFazioneMC(
     const currentMc = (fazione['mc'] as number) ?? 0;
     fazione['mc'] = Math.max(-1, Math.min(1, currentMc + mcDelta));
   }
+  await writeRaw(app, slug, data);
+}
+
+export async function patchFazioneEliminata(
+  app: App,
+  slug: string,
+  fazioneId: string,
+  eliminata: boolean,
+): Promise<void> {
+  const data = await readRaw(app, slug);
+  const fazioni = data['fazioni'] as Array<Record<string, unknown>>;
+  const fazione = fazioni.find(f => f['id'] === fazioneId);
+  if (fazione) fazione['eliminata'] = eliminata;
+  await writeRaw(app, slug, data);
+}
+
+export async function patchFazioneTipo(
+  app: App,
+  slug: string,
+  fazioneId: string,
+  tipo: TipoFazione,
+): Promise<void> {
+  const data = await readRaw(app, slug);
+  const fazioni = data['fazioni'] as Array<Record<string, unknown>>;
+  const fazione = fazioni.find(f => f['id'] === fazioneId);
+  if (fazione) fazione['tipo'] = tipo;
   await writeRaw(app, slug, data);
 }
 

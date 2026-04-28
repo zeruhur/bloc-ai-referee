@@ -7,7 +7,7 @@ import type {
 } from '../../types';
 import { stringifyYaml } from '../../utils/yaml';
 import { buildSystemPreamble } from './shared';
-import { buildFactionNameMap } from '../../utils/factionUtils';
+import { buildFactionNameMap, activeFazioni } from '../../utils/factionUtils';
 
 export function buildNarrativePrompt(
   campagna: Campagna,
@@ -27,8 +27,9 @@ export function buildNarrativePrompt(
   const accordiSection = accordiContext ? `\n\n${accordiContext}` : '';
   const deltaContext = historySection + recentSection + accordiSection;
 
-  const nameMap = buildFactionNameMap(campagna.fazioni);
-  const factionRef = campagna.fazioni
+  const activeFaz = activeFazioni(campagna.fazioni);
+  const nameMap = buildFactionNameMap(activeFaz);
+  const factionRef = activeFaz
     .map(f => `- ${f.id} → "${f.nome}"`)
     .join('\n');
 

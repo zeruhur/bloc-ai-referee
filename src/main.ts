@@ -22,6 +22,8 @@ import { cmdRegistraAccordoPubblico } from './commands/RegistraAccordoPubblico';
 import { cmdDichiaraTradimento } from './commands/DichiaraTradimento';
 import { cmdSciogliAccordo } from './commands/SciogliAccordo';
 import { cmdGeneraLeader } from './commands/GeneraLeader';
+import { cmdEliminaFazione, cmdRipristinaFazione } from './commands/EliminaFazione';
+import { cmdConvertiAIA, cmdConvertiAUmano } from './commands/ConvertiControlloFazione';
 
 export default class BlocPlugin extends Plugin {
   settings: BlocPluginSettings = DEFAULT_SETTINGS;
@@ -113,6 +115,30 @@ export default class BlocPlugin extends Plugin {
       id: 'elimina-leader',
       name: 'BLOC: Elimina leader fazione',
       callback: () => cmdEliminaLeader(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'elimina-fazione',
+      name: 'BLOC: Elimina fazione',
+      callback: () => cmdEliminaFazione(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'ripristina-fazione',
+      name: 'BLOC: Ripristina fazione',
+      callback: () => cmdRipristinaFazione(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'converti-a-ia',
+      name: 'BLOC: Converti fazione a controllo IA',
+      callback: () => cmdConvertiAIA(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'converti-a-umano',
+      name: 'BLOC: Converti fazione a controllo umano',
+      callback: () => cmdConvertiAUmano(this.app, this),
     });
 
     this.addCommand({

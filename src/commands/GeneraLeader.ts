@@ -8,6 +8,7 @@ import { buildGeneraLeaderPrompt } from '../pipeline/prompts/generaLeaderPrompt'
 import { generaLeaderOutputSchema, GeneraLeaderOutputZod } from '../pipeline/schemas/generaLeaderSchema';
 import { patchFazioneLeaderData } from '../vault/CampaignWriter';
 import { writeFactionFile } from '../vault/VaultManager';
+import { activeFazioni } from '../utils/factionUtils';
 
 class FazionePickerModal extends SuggestModal<FazioneConfig> {
   constructor(
@@ -37,7 +38,7 @@ export async function cmdGeneraLeader(app: App, plugin: BlocPlugin): Promise<voi
   if (!campagna) return;
 
   const fazione = await new Promise<FazioneConfig | null>((resolve) => {
-    const modal = new FazionePickerModal(app, campagna.fazioni, resolve);
+    const modal = new FazionePickerModal(app, activeFazioni(campagna.fazioni), resolve);
     modal.onClose = () => resolve(null);
     modal.open();
   });

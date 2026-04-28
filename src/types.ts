@@ -71,6 +71,7 @@ export interface FazioneConfig {
   nome: string;
   mc: MC;
   tipo?: TipoFazione;
+  eliminata?: boolean;
   obiettivo: string;
   concetto: string;
   vantaggi: string[];

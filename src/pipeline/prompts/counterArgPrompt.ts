@@ -1,6 +1,7 @@
 import type { AzioneDeclaration, Campagna, GameStateDelta, MatrixOutput } from '../../types';
 import { stringifyYaml } from '../../utils/yaml';
 import { buildSystemPreamble } from './shared';
+import { activeFazioni } from '../../utils/factionUtils';
 
 export function buildCounterArgPrompt(
   campagna: Campagna,
@@ -23,7 +24,7 @@ export function buildCounterArgPrompt(
 
 Il tuo compito è determinare quali fazioni avversarie avrebbero buone ragioni contestuali per opporsi all'azione altrui, e quale argomento specifico produrrebbero. Rispondi SOLO con il JSON richiesto.`;
 
-  const profiliFazioni = campagna.fazioni
+  const profiliFazioni = activeFazioni(campagna.fazioni)
     .map(f => `- ${f.id} (${f.nome}): ${f.concetto}`)
     .join('\n');
 

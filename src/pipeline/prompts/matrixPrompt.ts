@@ -1,6 +1,7 @@
 import type { AzioneDeclaration, Campagna, GameStateDelta } from '../../types';
 import { stringifyYaml } from '../../utils/yaml';
 import { buildSystemPreamble } from './shared';
+import { activeFazioni } from '../../utils/factionUtils';
 
 export function buildMatrixPrompt(
   campagna: Campagna,
@@ -50,7 +51,7 @@ Il tuo compito è analizzare le dichiarazioni di azione delle fazioni e produrre
 ${stringifyYaml(llmActions)}
 
 PROFILI FAZIONI:
-${campagna.fazioni.map(f => `- ${f.id} (${f.nome}): ${f.concetto}`).join('\n')}
+${activeFazioni(campagna.fazioni).map(f => `- ${f.id} (${f.nome}): ${f.concetto}`).join('\n')}
 
 Genera la matrice delle azioni. Per ogni fazione indica:
 - azione dichiarata e metodo sintetico

@@ -3,6 +3,7 @@ import type { FazioneConfig } from '../types';
 import type BlocPlugin from '../main';
 import { loadActiveCampagna } from './shared';
 import { patchFazioneLeader, patchFazioneMC } from '../vault/CampaignWriter';
+import { activeFazioni } from '../utils/factionUtils';
 
 class FazionePickerModal extends SuggestModal<FazioneConfig> {
   constructor(
@@ -30,7 +31,7 @@ export async function cmdEliminaLeader(app: App, plugin: BlocPlugin): Promise<vo
   const campagna = await loadActiveCampagna(app, plugin);
   if (!campagna) return;
 
-  const candidati = campagna.fazioni.filter(f => f.leader?.presente === true);
+  const candidati = activeFazioni(campagna.fazioni).filter(f => f.leader?.presente === true);
   if (candidati.length === 0) {
     new Notice('Nessun leader attualmente presente.');
     return;

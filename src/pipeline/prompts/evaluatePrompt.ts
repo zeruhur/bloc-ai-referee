@@ -1,6 +1,7 @@
 import type { AzioneDeclaration, Campagna, GameStateDelta, MatrixOutput } from '../../types';
 import { stringifyYaml } from '../../utils/yaml';
 import { buildSystemPreamble } from './shared';
+import { activeFazioni } from '../../utils/factionUtils';
 
 export function buildEvaluatePrompt(
   campagna: Campagna,
@@ -20,7 +21,7 @@ export function buildEvaluatePrompt(
   const accordiSection = accordiContext ? `\n\n${accordiContext}` : '';
   const deltaContext = historySection + recentSection + accordiSection;
 
-  const factionRef = campagna.fazioni
+  const factionRef = activeFazioni(campagna.fazioni)
     .map(f => `- ${f.id} (${f.nome})`)
     .join('\n');
 

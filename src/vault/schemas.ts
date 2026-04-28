@@ -5,6 +5,7 @@ const FazioneConfigSchema = z.object({
   nome: z.string(),
   mc: z.union([z.literal(-1), z.literal(0), z.literal(1)]),
   tipo: z.enum(['normale', 'ia']).optional(),
+  eliminata: z.boolean().optional(),
   obiettivo: z.string(),
   concetto: z.string(),
   vantaggi: z.array(z.string()),
