@@ -1,6 +1,6 @@
 {
   "name": "bloc-ai-referee",
-  "version": "0.9.3",
+  "version": "0.10.0",
   "private": true,
   "scripts": {
     "dev": "node esbuild.config.mjs",
