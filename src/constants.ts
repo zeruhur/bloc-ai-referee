@@ -76,8 +76,9 @@ export interface StatoAction { label: string; commandId: string }
 
 export const STATO_ACTION_MAP: Partial<Record<CampagnaStato, StatoAction[]>> = {
   raccolta: [
-    { label: '⚡ Dichiara azione',  commandId: 'bloc-ai-referee:dichiara-azione' },
-    { label: '⚡ Genera matrice',   commandId: 'bloc-ai-referee:genera-matrice' },
+    { label: '⚡ Dichiara azione',   commandId: 'bloc-ai-referee:dichiara-azione' },
+    { label: '⚡ Genera matrice',    commandId: 'bloc-ai-referee:genera-matrice' },
+    { label: '⚙ Simula turno (IA)', commandId: 'bloc-ai-referee:simula-turno' },
   ],
   matrice_generata: [{ label: '⚡ Auto contro-argomentazione', commandId: 'bloc-ai-referee:auto-contro-argomentazione' }],
   contro_args:      [{ label: '⚡ Valuta azioni',              commandId: 'bloc-ai-referee:valuta-azioni' }],
@@ -92,6 +93,7 @@ export const STATELESS_ACTIONS: ActionGroup[] = [
   {
     title: 'Strumenti',
     actions: [
+      { label: 'Nuova campagna',        commandId: 'bloc-ai-referee:nuova-campagna' },
       { label: 'Stato campagna',        commandId: 'bloc-ai-referee:stato-campagna' },
       { label: 'Oracolo',               commandId: 'bloc-ai-referee:interroga-oracolo' },
       { label: 'Verifica leader',       commandId: 'bloc-ai-referee:verifica-leader' },
@@ -105,6 +107,7 @@ export const STATELESS_ACTIONS: ActionGroup[] = [
     title: 'Fazioni',
     actions: [
       { label: 'Aggiungi fazione',      commandId: 'bloc-ai-referee:aggiungi-nuova-fazione' },
+      { label: 'Genera fazione (IA)',   commandId: 'bloc-ai-referee:genera-fazione' },
       { label: 'Elimina fazione',       commandId: 'bloc-ai-referee:elimina-fazione' },
       { label: 'Ripristina fazione',    commandId: 'bloc-ai-referee:ripristina-fazione' },
       { label: 'Sospendi fazione',      commandId: 'bloc-ai-referee:sospendi-fazione' },

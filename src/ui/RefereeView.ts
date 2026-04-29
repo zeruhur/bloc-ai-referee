@@ -80,8 +80,8 @@ export class RefereeView extends ItemView {
       this.renderFlowState(container, campagna.meta.stato, runState);
       this.messagesContainer = this.renderMessagesSection(container);
       this.renderActions(container, campagna.meta.stato, runState);
-      this.renderStatelessActions(container);
     }
+    this.renderStatelessActions(container);
   }
 
   private async renderSwitchers(container: HTMLElement, campagna: Campagna | null): Promise<void> {

@@ -32,6 +32,8 @@ import { cmdFondiFazioni } from './commands/FondiFazioni';
 import { cmdAggiungiNuovaFazione } from './commands/AggiungiNuovaFazione';
 import { cmdScissioneFazione } from './commands/ScissioneFazione';
 import { cmdChiudiCampagna } from './commands/ChiudiCampagna';
+import { cmdSimulaTurno } from './commands/SimulaTurno';
+import { cmdGeneraFazione } from './commands/GeneraFazione';
 import { migrateVaultYaml } from './vault/migrateLegacyYaml';
 
 export default class BlocPlugin extends Plugin {
@@ -236,6 +238,18 @@ export default class BlocPlugin extends Plugin {
       id: 'chiudi-campagna',
       name: 'BLOC: Chiudi campagna',
       callback: () => cmdChiudiCampagna(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'simula-turno',
+      name: 'BLOC: Simula turno (IA)',
+      callback: () => cmdSimulaTurno(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'genera-fazione',
+      name: 'BLOC: Genera fazione (IA)',
+      callback: () => cmdGeneraFazione(this.app, this),
     });
   }
 
