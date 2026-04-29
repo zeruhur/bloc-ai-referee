@@ -4,6 +4,7 @@ import { buildFileWithFrontmatter, parseFrontmatter } from '../utils/yaml';
 import { markdownTable, markdownSection } from '../utils/markdown';
 import { matrixFilePath, arbiterMatrixFilePath } from './VaultManager';
 import { resolveFactionName } from '../utils/factionUtils';
+import { ESITO_LABELS } from '../constants';
 
 export function buildMatrixFileContent(
   entries: MatrixEntry[],
@@ -11,14 +12,43 @@ export function buildMatrixFileContent(
   isArbiter: boolean,
   fazioni: FazioneConfig[] = [],
 ): string {
+  const hasControArg = entries.some(e => e.contro_argomentazione);
+  const hasValutazione = entries.some(e => e.valutazione);
+  const hasEsito = entries.some(e => e.esito_tiro);
+
   const headers = ['Fazione', 'Azione', 'Metodo', 'Argomento vantaggio', 'Conflitti'];
-  const rows = entries.map(a => [
-    resolveFactionName(a.fazione, fazioni),
-    a.azione,
-    a.metodo,
-    a.argomento_vantaggio || '—',
-    a.conflitti_con.map(id => resolveFactionName(id, fazioni)).join(', ') || '—',
-  ]);
+  if (hasControArg) headers.push('Contro-argomentazione');
+  if (hasValutazione) headers.push('Pool dadi', 'Motivazione');
+  if (hasEsito) headers.push('Tiro', 'Esito');
+
+  const rows = entries.map(a => {
+    const row = [
+      resolveFactionName(a.fazione, fazioni),
+      a.azione,
+      a.metodo,
+      a.argomento_vantaggio || '—',
+      a.conflitti_con.map(id => resolveFactionName(id, fazioni)).join(', ') || '—',
+    ];
+    if (hasControArg) row.push(a.contro_argomentazione || '—');
+    if (hasValutazione) {
+      if (a.valutazione) {
+        const { positivi, negativi, netto, modalita } = a.valutazione.pool;
+        row.push(`+${positivi}/-${negativi} (netto ${netto > 0 ? '+' : ''}${netto}, ${modalita})`);
+        row.push(a.valutazione.motivazione);
+      } else {
+        row.push('—', '—');
+      }
+    }
+    if (hasEsito) {
+      if (a.esito_tiro) {
+        row.push(`[${a.esito_tiro.dadi.join(', ')}] → ${a.esito_tiro.risultato}`);
+        row.push(ESITO_LABELS[a.esito_tiro.esito]);
+      } else {
+        row.push('—', '—');
+      }
+    }
+    return row;
+  });
 
   const table = markdownTable(headers, rows);
   const title = isArbiter

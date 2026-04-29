@@ -1,7 +1,7 @@
 import type { App } from 'obsidian';
 import type { AzioneDeclaration, Campagna, LLMAdapter, MatrixEntry, MatrixOutput } from '../types';
 import { loadActionsForTurn } from '../vault/ActionLoader';
-import { matrixFilePath, actionFilePath, patchActionFrontmatter, appendToRollsFile } from '../vault/VaultManager';
+import { matrixFilePath, actionFilePath, leaderActionFilePath, patchActionFrontmatter, appendToRollsFile } from '../vault/VaultManager';
 import { readMatrixEntries, mergeMatrixEntries, writeMatrixFiles } from '../vault/MatrixWriter';
 import { patchCampagnaStato } from '../vault/CampaignWriter';
 import { markStepStarted, markStepCompleted, markRunFailed } from '../vault/RunStateManager';
@@ -59,18 +59,32 @@ export async function runStepCounterArg(
       );
     }
 
+    // Build a map from fazione → file path(s) so leader actions resolve correctly
+    const actionFileMap = new Map<string, string[]>();
+    for (const a of actions) {
+      const p = a.tipo_azione === 'leader'
+        ? leaderActionFilePath(slug, turno_corrente, a.fazione)
+        : actionFilePath(slug, turno_corrente, a.fazione);
+      const existing = actionFileMap.get(a.fazione) ?? [];
+      existing.push(p);
+      actionFileMap.set(a.fazione, existing);
+    }
+
     for (const entry of validation.data.contro_argomentazioni) {
-      const filePath = actionFilePath(slug, turno_corrente, entry.fazione_target);
-      const exists = await app.vault.adapter.exists(filePath);
-      if (!exists) continue;
+      const filePaths = actionFileMap.get(entry.fazione_target) ?? [];
+      if (filePaths.length === 0) continue;
 
       const argomenti = entry.argomenti.filter(
         a => a.argomento.trim() !== '' && a.fazione !== entry.fazione_target,
       );
 
-      await patchActionFrontmatter<AzioneDeclaration>(app, filePath, {
-        argomenti_contro: argomenti,
-      } as any);
+      for (const filePath of filePaths) {
+        const exists = await app.vault.adapter.exists(filePath);
+        if (!exists) continue;
+        await patchActionFrontmatter<AzioneDeclaration>(app, filePath, {
+          argomenti_contro: argomenti,
+        } as any);
+      }
     }
 
     // ---- Update matrix with contro_argomentazione ----

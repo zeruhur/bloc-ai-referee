@@ -10,7 +10,7 @@ import type {
 } from '../types';
 import { loadActionsForTurn, actionFilePath } from '../vault/ActionLoader';
 import { parseFrontmatter } from '../utils/yaml';
-import { patchActionFrontmatter, matrixFilePath, appendToRollsFile } from '../vault/VaultManager';
+import { patchActionFrontmatter, matrixFilePath, appendToRollsFile, leaderActionFilePath } from '../vault/VaultManager';
 import { readMatrixEntries, mergeMatrixEntries, writeMatrixFiles } from '../vault/MatrixWriter';
 import { patchCampagnaStato } from '../vault/CampaignWriter';
 import { markStepStarted, markStepCompleted, markRunFailed } from '../vault/RunStateManager';
@@ -81,7 +81,9 @@ export async function runStep2Evaluate(
       const evaluation = validation.data;
       evaluations.push(evaluation);
 
-      const filePath = actionFilePath(slug, turno_corrente, action.fazione);
+      const filePath = action.tipo_azione === 'leader'
+        ? leaderActionFilePath(slug, turno_corrente, action.fazione)
+        : actionFilePath(slug, turno_corrente, action.fazione);
       await patchActionFrontmatter<AzioneDeclaration>(app, filePath, {
         valutazione: evaluation,
       } as any);
