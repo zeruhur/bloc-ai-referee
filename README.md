@@ -12,13 +12,14 @@ Il plugin implementa una pipeline LLM a step separati per valutare le dichiarazi
 - **Argomenti liberi** — vantaggi e svantaggi sono testo libero contestuale all'azione, non token fissi
 - **Dadi deterministici** — PRNG Mulberry32 con seed registrato; nessun tiro delegato all'LLM
 - **5 provider LLM** — Google AI Studio (Gemini), Anthropic (Claude), OpenAI, OpenRouter, Ollama (locale)
-- **Vault-first** — tutto lo stato di gioco vive in file Markdown/YAML nella vault; nessun database esterno
-- **Doppio layer di output** — YAML machine-readable per il contesto LLM + Markdown leggibile per i giocatori
+- **Vault-first** — tutto lo stato di gioco vive in file Markdown con frontmatter YAML nella vault; nessun database esterno
+- **Doppio layer di output** — frontmatter machine-readable per il contesto LLM + corpo Markdown leggibile per i giocatori
+- **Sidebar interattiva** — campagna, provider e modello selezionabili e modificabili direttamente dalla sidebar, senza aprire le impostazioni
 - **Chiavi API sicure** — salvate nei dati del plugin, mai nei file della vault
-- **Fazioni IA** — auto-genera la dichiarazione di azione per fazioni non controllate da giocatori, con tipo procedurale (tabella 1d6) iniettato nel prompt
+- **Fazioni IA** — auto-genera la dichiarazione di azione per fazioni non controllate da giocatori, con tipo procedurale (tabella 1d6) iniettato nel prompt; se il leader è presente genera sempre anche l'azione leader (seconda chiamata LLM)
 - **Tabelle procedurali IA** — tipo azione, reaction e conflitti IA-vs-IA risolti da tabelle Mulberry32, senza LLM
 - **Oracolo Yes/No** — risponde a domande dell'arbitro con dado modificabile (Improbabile/Neutro/Probabile), log in `oracolo.md`
-- **Meccanica Leader** — nome, disponibilità per turno (1d6 + MC) e eliminazione con penalità MC
+- **Meccanica Leader** — nome, disponibilità per turno (1d6 + MC per fazioni umane), eliminazione con penalità MC; per fazioni IA l'azione leader è sempre generata quando il leader è presente
 - **Fog of War completo** — azioni segrete (risolte nel turno ma invisibili nella matrice pubblica), spionaggio con dado scoperta pre-pipeline, doppia matrice (pubblica + arbitro)
 - **Accordi e alleanze** — accordi pubblici e privati iniettati nel contesto LLM; tradimento con penalità MC; scadenza automatica in `ChiudiTurno`
 - **Contro-argomentazione automatizzata** — l'LLM può generare le contro-argomentazioni al posto dei giocatori
@@ -72,9 +73,9 @@ Per la guida completa vedi [GUIDA_UTENTE.md](docs/GUIDA_UTENTE.md).
 | `BLOC: Chiudi turno` | `review` | Archivia il turno corrente e prepara quello successivo |
 | `BLOC: Stato campagna` | sempre | Mostra il riepilogo dello stato attuale |
 | `BLOC: Interroga oracolo` | sempre | Risposta Yes/No a una domanda (dado modificato), log in `oracolo.md` |
-| `BLOC: Verifica disponibilità leader` | sempre | Tira disponibilità leader per tutte le fazioni, aggiorna `campagna.yaml` |
+| `BLOC: Verifica disponibilità leader` | sempre | Tira disponibilità leader per tutte le fazioni, aggiorna `campagna.md` |
 | `BLOC: Elimina leader fazione` | sempre | Segna il leader come eliminato (MC −1 per la fazione) |
-| `BLOC: Registra accordo privato` | sempre | Salva un accordo segreto tra fazioni in `campagna-privato.yaml` |
+| `BLOC: Registra accordo privato` | sempre | Salva un accordo segreto tra fazioni in `campagna-privato.md` |
 | `BLOC: Registra accordo pubblico` | sempre | Registra un accordo pubblico tra fazioni (iniettato nel contesto LLM) |
 | `BLOC: Dichiara tradimento` | sempre | Viola un accordo attivo (MC −1 alla fazione traditrice) |
 | `BLOC: Sciogli accordo` | sempre | Chiude un accordo per accordo reciproco, senza penalità |
@@ -91,6 +92,7 @@ Per la guida completa vedi [GUIDA_UTENTE.md](docs/GUIDA_UTENTE.md).
 | `BLOC: Aggiungi nuova fazione` | sempre | Crea una nuova fazione mid-campagna e la aggiunge a `campagna.yaml` |
 | `BLOC: Scindi fazione` | sempre | Crea una fazione derivata da una esistente, con redistribuzione vantaggi |
 | `BLOC: Genera leader fazione` | sempre | Assegna un nome casuale al leader di una fazione che ne è priva |
+| `BLOC: Chiudi campagna` | sempre | LLM genera l'epilogo della campagna e lo scrive in `narrativa.md` o `conclusione.md` |
 
 ---
 
@@ -99,19 +101,22 @@ Per la guida completa vedi [GUIDA_UTENTE.md](docs/GUIDA_UTENTE.md).
 ```
 /campagne/
   /{slug-campagna}/
-    campagna.yaml                     ← stato globale + config LLM + profili fazioni
-    campagna-privato.yaml             ← accordi privati (fog of war — mai inviato all'LLM)
-    campagna-accordi-pubblici.yaml    ← accordi pubblici (iniettati nel contesto LLM)
+    campagna.md                       ← stato globale + config LLM + profili fazioni (frontmatter)
+    campagna-privato.md               ← accordi privati (fog of war — mai inviato all'LLM)
+    campagna-accordi-pubblici.md      ← accordi pubblici (iniettati nel contesto LLM)
     oracolo.md                        ← log delle consultazioni oracolo
     /fazioni/
       {slug}.md                       ← scheda fazione (profilo, obiettivo)
+      {slug}-latenti.md               ← azioni latenti archiviate (frontmatter)
     /turno-01/
       azione-{fazione}.md             ← dichiarazione azione
+      azione-{fazione}-leader.md      ← azione leader (se presente)
       azione-{fazione}-segreta.md     ← azione segreta (solo per l'arbitro)
       matrice.md                      ← output Step 1 (pubblica — no azioni segrete)
       matrice-arbitro.md              ← output Step 1 completo (include segrete)
       tiri.md                         ← log deterministico dei dadi (include tiri spionaggio)
       narrativa.md                    ← output LLM Step 3 (per i giocatori)
+      run-state.md                    ← stato interno della pipeline (frontmatter)
     /turno-02/
       ...
 ```

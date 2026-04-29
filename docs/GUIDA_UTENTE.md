@@ -11,13 +11,14 @@ Questa guida copre tutto il necessario per usare il plugin, dalla prima installa
 5. [Fazioni IA](#5-fazioni-ia)
 6. [Gestione ciclo di vita delle fazioni](#6-gestione-ciclo-di-vita-delle-fazioni)
 7. [Azioni speciali](#7-azioni-speciali)
-8. [Oracolo](#8-oracolo)
-9. [Meccanica Leader](#9-meccanica-leader)
-10. [Accordi e alleanze](#10-accordi-e-alleanze)
-11. [Struttura dei file](#11-struttura-dei-file)
-12. [Gestione provider LLM](#12-gestione-provider-llm)
-13. [Riferimento comandi](#13-riferimento-comandi)
-14. [Domande frequenti](#14-domande-frequenti)
+8. [Chiudi campagna](#8-chiudi-campagna)
+9. [Oracolo](#9-oracolo)
+10. [Meccanica Leader](#10-meccanica-leader)
+11. [Accordi e alleanze](#11-accordi-e-alleanze)
+12. [Struttura dei file](#12-struttura-dei-file)
+13. [Gestione provider LLM](#13-gestione-provider-llm)
+14. [Riferimento comandi](#14-riferimento-comandi)
+15. [Domande frequenti](#15-domande-frequenti)
 
 ## 1. Quick Start
 
@@ -57,7 +58,17 @@ Nella sezione **Chiavi API** trovi un campo per ogni provider cloud. Incolla la 
 2. Clicca **Aggiorna lista** — il plugin scarica i modelli disponibili
 3. Scegli il **Modello**
 
-Il modello selezionato diventa il default per le nuove campagne; puoi cambiarlo in `campagna.yaml` per ogni campagna.
+Il modello selezionato diventa il default per le nuove campagne; puoi cambiarlo in `campagna.md` per ogni campagna, oppure usare i dropdown nella sidebar (vedi [Sidebar interattiva](#sidebar-interattiva)).
+
+### Sidebar interattiva
+
+La sidebar **BLOC Referee** (icona scudo nel ribbon) mostra in cima una sezione **Configurazione** con tre dropdown:
+
+- **Campagna** — elenca tutte le campagne in `/campagne/`; selezionarne una la rende attiva senza aprire le impostazioni
+- **Provider** — cambia il provider LLM della campagna corrente direttamente dalla sidebar
+- **Modello** — seleziona il modello tra quelli scaricati per il provider; se nessuna lista è disponibile mostra un campo testo editabile
+
+Le modifiche a provider e modello aggiornano immediatamente `campagna.md`.
 
 **Modelli consigliati:**
 
@@ -98,7 +109,7 @@ Per ogni fazione, compila:
 
 > **Come scrivere un buon profilo.** Non elencare vantaggi e svantaggi in modo rigido: descrivi la fazione come faresti in una presentazione narrativa. *"I Draghi del Nord eccellono in operazioni notturne e movimenti rapidi, ma faticano a mantenere il controllo di territori vasti per la loro struttura decentralizzata."* L'LLM interpreterà questi tratti contestualmente per ogni azione dichiarata.
 
-Clicca **Crea campagna** — il plugin genera `campagna.yaml` e le schede fazione nella vault.
+Clicca **Crea campagna** — il plugin genera `campagna.md` e le schede fazione nella vault.
 
 ## 4. Flusso di un turno
 
@@ -193,8 +204,8 @@ Per ogni fazione IA senza dichiarazione:
 
 1. Tira `rollTipoAzioneIA` (1d6) — tipo tematico: *Consolidamento, Espansione, Attacco Diretto, Difesa, Diplomatico/Politico, Evento Speciale*
 2. Inietta il tipo nel prompt come vincolo (*"orienta l'azione verso questa categoria"*)
-3. Chiama l'LLM per generare `azione`, `metodo` e `argomento_vantaggio`
-4. Se la fazione ha un leader, tira la disponibilità automaticamente
+3. Chiama l'LLM per generare `azione`, `metodo` e `argomento_vantaggio` → scrive `azione-{id}.md`
+4. Se la fazione ha il leader presente (`leader.presente: true`), genera **sempre** anche l'azione leader con una seconda chiamata LLM → scrive `azione-{id}-leader.md` (nessun tiro di dado: se il leader è presente, agisce)
 
 Le reazioni tra fazioni IA usano `rollReactionTable` (1d6: 1–2 Ostile, 3–4 Neutrale, 5–6 Collaborativa). I conflitti IA-vs-IA usano `rollIAConflictOutcome` (1d6: 1–2 Vittoria totale, 3–4 Vittoria parziale, 5–6 Stallo) — senza chiamate LLM.
 
@@ -262,7 +273,7 @@ Flusso:
 
 ### Azioni latenti
 
-Le azioni con `categoria_azione: latente` vengono salvate in `/fazioni/{slug}-latenti.yaml` — visibili solo all'arbitro. Il plugin le include nel contesto LLM solo al turno di attivazione dichiarato.
+Le azioni con `categoria_azione: latente` vengono salvate in `/fazioni/{slug}-latenti.md` — visibili solo all'arbitro. Il plugin le include nel contesto LLM solo al turno di attivazione dichiarato.
 
 Usa **`BLOC: Attiva azione latente`** per renderle operative al momento opportuno.
 
@@ -298,7 +309,22 @@ Il tiro viene registrato in `tiri.md` nella sezione pre-pipeline, prima dei tiri
 | 1–3 | Fallimento — l'azione segreta rimane nascosta |
 | 4–6 | Scoperta — l'azione segreta entra in `matrice.md` con `[SCOPERTA]` |
 
-## 8. Oracolo
+## 8. Chiudi campagna
+
+**Comando:** `BLOC: Chiudi campagna`
+
+Genera tramite LLM un epilogo narrativo dell'intera campagna, sintetizzando gli eventi chiave registrati in `game_state_delta`. Può essere usato in qualsiasi momento — non richiede uno stato particolare.
+
+**Output:**
+
+- Se esiste già `narrativa.md` nel turno corrente, l'epilogo viene aggiunto in coda come sezione `## Epilogo — Fine Campagna`
+- Se non esiste, viene creato `campagne/{slug}/conclusione.md` con l'epilogo completo
+
+Il file prodotto è editabile liberamente come qualsiasi altro documento Markdown della vault.
+
+---
+
+## 9. Oracolo
 
 L'oracolo risponde a domande chiuse (sì/no) senza coinvolgere l'LLM. È lo strumento classico per risolvere incertezze di stato del mondo in campagne solitarie: *"I rinforzi arrivano in tempo?"*, *"Il territorio è già presidiato?"*.
 
@@ -327,7 +353,7 @@ L'oracolo risponde a domande chiuse (sì/no) senza coinvolgere l'LLM. È lo stru
 
 Il risultato viene appeso a `campagne/{slug}/oracolo.md` con turno, dado, modificatore e valore finale.
 
-## 9. Meccanica Leader
+## 10. Meccanica Leader
 
 Il leader è un personaggio chiave che può agire come risorsa aggiuntiva nel turno, ma la cui disponibilità non è garantita.
 
@@ -341,15 +367,15 @@ leader:
   presente: true
 ```
 
-Per aggiungere un leader a una fazione già esistente usa **`BLOC: Genera leader fazione`** — genera nome e profilo tramite LLM, poi li salva in `campagna.yaml` e nella scheda fazione.
+Per aggiungere un leader a una fazione già esistente usa **`BLOC: Genera leader fazione`** — genera nome e profilo tramite LLM, poi li salva in `campagna.md` e nella scheda fazione.
 
 ### Verificare la disponibilità
 
 **Comando:** `BLOC: Verifica disponibilità leader`
 
-Tira `1d6 + MC` per ogni fazione con leader. Con risultato ≥ 4 il leader è disponibile (`presente: true`); altrimenti `presente: false`. Una notice elenca i leader disponibili nel turno.
+Tira `1d6 + MC` per ogni fazione **umana** con leader. Con risultato ≥ 4 il leader è disponibile (`presente: true`); altrimenti `presente: false`. Una notice elenca i leader disponibili nel turno.
 
-Per le fazioni IA la disponibilità viene verificata automaticamente durante `BLOC: Dichiara azione`.
+Per le fazioni IA non viene effettuato alcun tiro: se `leader.presente: true`, l'azione leader viene sempre generata automaticamente durante `BLOC: Dichiara azione`.
 
 ### Usare il leader
 
@@ -361,13 +387,13 @@ Dichiara un'azione con `tipo_azione: leader`. Il form verifica automaticamente l
 
 Seleziona la fazione dal picker (mostra solo fazioni con `leader.presente === true`). Il plugin imposta `presente: false` e applica MC −1.
 
-## 10. Accordi e alleanze
+## 11. Accordi e alleanze
 
 Il plugin supporta due tipi di accordi tra fazioni: **pubblici** (noti a tutti, iniettati nel contesto LLM) e **privati** (segreti, mai inviati all'LLM).
 
 ### Accordi pubblici
 
-Gli accordi pubblici vengono salvati in `campagna-accordi-pubblici.yaml` e **iniettati come sezione `ACCORDI ATTIVI` nel system prompt** di ogni chiamata LLM del turno. L'LLM conosce l'esistenza dell'accordo e i suoi termini — questo influenza la valutazione degli argomenti e la narrativa.
+Gli accordi pubblici vengono salvati in `campagna-accordi-pubblici.md` e **iniettati come sezione `ACCORDI ATTIVI` nel system prompt** di ogni chiamata LLM del turno. L'LLM conosce l'esistenza dell'accordo e i suoi termini — questo influenza la valutazione degli argomenti e la narrativa.
 
 **Comando:** `BLOC: Registra accordo pubblico`
 
@@ -380,7 +406,7 @@ Gli accordi pubblici vengono salvati in `campagna-accordi-pubblici.yaml` e **ini
 
 ### Accordi privati
 
-Gli accordi privati vengono salvati in `campagna-privato.yaml`. Questo file **non viene mai incluso nel contesto inviato all'LLM** — è l'unico file della campagna con questa garanzia.
+Gli accordi privati vengono salvati in `campagna-privato.md`. Questo file **non viene mai incluso nel contesto inviato all'LLM** — è l'unico file della campagna con questa garanzia.
 
 Nel contesto LLM gli accordi privati appaiono solo come `[RISERVATO — accordo privato tra Fazione A / Fazione B]`: l'LLM sa che esiste un accordo senza conoscerne i termini.
 
@@ -413,8 +439,9 @@ In **`BLOC: Chiudi turno`**, prima di incrementare il numero di turno, il plugin
 
 ### Struttura dei file
 
-**`campagna-accordi-pubblici.yaml`:**
+**`campagna-accordi-pubblici.md`** (frontmatter YAML):
 ```yaml
+---
 accordi:
   - id: accordo-1714234800000
     fazioni: [draghi, mercenari]
@@ -424,10 +451,12 @@ accordi:
     turno_scadenza: 6
     stato: attivo
     violazioni: []
+---
 ```
 
-**`campagna-privato.yaml`** (stesso schema, termini mai inviati all'LLM):
+**`campagna-privato.md`** (stesso schema, termini mai inviati all'LLM):
 ```yaml
+---
 accordi:
   - id: accordo-1714234900000
     fazioni: [negromanti, empire]
@@ -437,43 +466,51 @@ accordi:
     turno_scadenza: 5
     stato: attivo
     violazioni: []
+---
 ```
 
-## 11. Struttura dei file
+## 12. Struttura dei file
 
 Il plugin gestisce tutto nella cartella `campagne/` della vault:
 
 ```
 campagne/
 └── {slug}/
-    ├── campagna.yaml                    # Stato principale della campagna
-    ├── campagna-privato.yaml            # Accordi privati — mai inviato all'LLM
-    ├── campagna-accordi-pubblici.yaml   # Accordi pubblici — iniettati nel contesto LLM
+    ├── campagna.md                      # Stato principale della campagna (frontmatter)
+    ├── campagna-privato.md              # Accordi privati — mai inviato all'LLM (frontmatter)
+    ├── campagna-accordi-pubblici.md     # Accordi pubblici — iniettati nel contesto LLM (frontmatter)
     ├── oracolo.md                       # Log delle risposte oracolari
+    ├── conclusione.md                   # Epilogo LLM (se generato fuori turno)
+    ├── fazioni/
+    │   ├── {slug}.md                    # Scheda fazione (frontmatter + corpo narrativo)
+    │   └── {slug}-latenti.md            # Azioni latenti archiviate (frontmatter)
     └── turno-NN/
         ├── azione-{fazione}.md          # Dichiarazioni normali del turno
+        ├── azione-{fazione}-leader.md   # Azione leader (se presente)
         ├── azione-{fazione}-segreta.md  # Azioni segrete (solo per l'arbitro)
         ├── matrice.md                   # Output Step 1 — pubblica (no segrete)
         ├── matrice-arbitro.md           # Output Step 1 — completa (include segrete)
         ├── tiri.md                      # Seed, dadi, esiti (include tiri spionaggio)
         ├── narrativa.md                 # Output Step 3
-        └── archivio/                    # File archiviati dopo ChiudiTurno
-fazioni/
-└── {slug}-latenti.yaml                  # Azioni latenti in attesa di attivazione
+        └── run-state.md                 # Stato interno pipeline (frontmatter)
 ```
 
-## 12. Gestione provider LLM
+## 13. Gestione provider LLM
 
 ### Cambiare provider per una campagna specifica
 
-Modifica direttamente `campagna.yaml`:
+Il modo più rapido è usare i dropdown nella sidebar (sezione **Configurazione**): seleziona provider e modello senza uscire dalla vault.
+
+In alternativa, modifica direttamente il frontmatter di `campagna.md`:
 
 ```yaml
+---
 llm:
   provider: anthropic
   model: claude-sonnet-4-6
   temperature_mechanical: 0.2
   temperature_narrative: 0.7
+---
 ```
 
 ### Temperature
@@ -491,7 +528,7 @@ Con Gemini 2.5 (1M token) il contesto cumulativo di 10 turni è sempre entro i l
 
 Assicurati che Ollama sia in ascolto prima di usare i comandi. L'URL base predefinito è `http://localhost:11434` — modificabile nelle impostazioni. Modelli consigliati per structured output: `gemma3:12b`, `mistral-nemo`, `llama3.3`.
 
-## 13. Riferimento comandi
+## 14. Riferimento comandi
 
 ### Pipeline di gioco
 
@@ -514,13 +551,14 @@ Assicurati che Ollama sia in ascolto prima di usare i comandi. L'URL base predef
 |---|---|---|
 | `BLOC: Attiva azione latente` | sempre | Attiva un'azione latente archiviata |
 | `BLOC: Interroga oracolo` | sempre | Risposta Sì/No a domanda (dado modificato) |
-| `BLOC: Verifica disponibilità leader` | sempre | Tira disponibilità leader, aggiorna `campagna.yaml` |
+| `BLOC: Verifica disponibilità leader` | sempre | Tira disponibilità leader (fazioni umane), aggiorna `campagna.md` |
 | `BLOC: Elimina leader fazione` | sempre | Segna leader come eliminato (MC −1) |
 | `BLOC: Genera leader fazione` | sempre | Genera nome e profilo leader tramite LLM |
-| `BLOC: Registra accordo privato` | sempre | Salva accordo segreto in `campagna-privato.yaml` |
+| `BLOC: Registra accordo privato` | sempre | Salva accordo segreto in `campagna-privato.md` |
 | `BLOC: Registra accordo pubblico` | sempre | Registra accordo pubblico iniettato nel contesto LLM |
 | `BLOC: Dichiara tradimento` | sempre | Viola un accordo attivo (MC −1 alla fazione traditrice) |
 | `BLOC: Sciogli accordo` | sempre | Chiude un accordo consensualmente, senza penalità |
+| `BLOC: Chiudi campagna` | sempre | LLM genera l'epilogo della campagna; aggiunge a `narrativa.md` o crea `conclusione.md` |
 
 ### Gestione fazioni
 
@@ -540,7 +578,7 @@ Assicurati che Ollama sia in ascolto prima di usare i comandi. L'URL base predef
 
 > Tutti i comandi sono accessibili dalla **Command Palette** (`Ctrl+P` / `Cmd+P`).
 
-## 14. Domande frequenti
+## 15. Domande frequenti
 
 ### Devo specificare vantaggi e svantaggi come liste?
 
@@ -566,7 +604,7 @@ Ogni tiro usa il timestamp come seed, registrato in `tiri.md`. Dati lo stesso se
 
 ### Posso gestire più campagne contemporaneamente?
 
-Sì. Il plugin carica la campagna specificata in *Impostazioni → Campagna predefinita*. Se il campo è vuoto, al primo comando che lo richiede appare un selettore con tutte le campagne in `/campagne/`.
+Sì. Il plugin carica la campagna specificata in *Impostazioni → Campagna predefinita*, oppure tramite il dropdown **Campagna** nella sidebar. Se il campo è vuoto, al primo comando che lo richiede appare un selettore con tutte le campagne in `/campagne/`.
 
 ### La chiave API è al sicuro?
 
