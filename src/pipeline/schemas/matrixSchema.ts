@@ -4,8 +4,8 @@ const MatrixEntrySchema = z.object({
   fazione: z.string(),
   azione: z.string(),
   metodo: z.string(),
-  argomento_vantaggio: z.string(),
-  conflitti_con: z.array(z.string()),
+  argomento_vantaggio: z.string().nullish().transform(v => v ?? ''),
+  conflitti_con: z.array(z.string()).nullish().transform(v => v ?? []),
 });
 
 export const matrixOutputSchema = {

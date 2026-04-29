@@ -107,8 +107,9 @@ export async function runStep1Matrix(
 
     const validation = MatrixOutputZod.safeParse(response.parsed);
     if (!validation.success) {
+      const issues = validation.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ');
       throw new LLMValidationError(
-        `Output matrice non valido: ${validation.error.message}`,
+        `Output matrice non valido: ${issues}`,
         response.content,
       );
     }
