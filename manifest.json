@@ -1,7 +1,7 @@
 {
   "id": "bloc-ai-referee",
   "name": "BLOC AI Referee",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "minAppVersion": "1.5.0",
   "description": "Multi-step LLM pipeline for refereeing BLOC tabletop RPG campaigns.",
   "author": "zeruhur",
