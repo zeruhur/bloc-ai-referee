@@ -1,18 +1,19 @@
 import type { App } from 'obsidian';
-import type { Campagna, CampagnaStato, FazioneConfig, GameStateDelta, TipoFazione } from '../types';
-import { parseYaml, stringifyYaml } from '../utils/yaml';
+import type { Campagna, CampagnaStato, FazioneConfig, GameStateDelta, LLMProvider, TipoFazione } from '../types';
+import { parseYaml, parseFrontmatter, buildFileWithFrontmatter } from '../utils/yaml';
 import { CAMPAGNE_FOLDER, CAMPAGNA_FILE } from '../constants';
 import { writeFactionFile } from './VaultManager';
 
 async function readRaw(app: App, slug: string): Promise<Record<string, unknown>> {
   const path = `${CAMPAGNE_FOLDER}/${slug}/${CAMPAGNA_FILE}`;
   const content = await app.vault.adapter.read(path);
-  return parseYaml<Record<string, unknown>>(content);
+  return parseFrontmatter<Record<string, unknown>>(content)
+    ?? parseYaml<Record<string, unknown>>(content);
 }
 
 async function writeRaw(app: App, slug: string, data: Record<string, unknown>): Promise<void> {
   const path = `${CAMPAGNE_FOLDER}/${slug}/${CAMPAGNA_FILE}`;
-  await app.vault.adapter.write(path, stringifyYaml(data));
+  await app.vault.adapter.write(path, buildFileWithFrontmatter(data, ''));
 }
 
 export async function patchCampagnaStato(
@@ -182,6 +183,18 @@ export async function pushNuovaFazione(
   fazioni.push(fazione as unknown as Record<string, unknown>);
   await writeRaw(app, slug, data);
   await writeFactionFile(app, slug, fazione.id, fazione, '');
+}
+
+export async function patchCampagnaLLM(
+  app: App,
+  slug: string,
+  patch: { provider?: LLMProvider; model?: string },
+): Promise<void> {
+  const data = await readRaw(app, slug);
+  const llm = data['llm'] as Record<string, unknown>;
+  if (patch.provider !== undefined) llm['provider'] = patch.provider;
+  if (patch.model !== undefined) llm['model'] = patch.model;
+  await writeRaw(app, slug, data);
 }
 
 export async function incrementTurno(app: App, campagna: Campagna): Promise<void> {

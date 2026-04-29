@@ -30,7 +30,7 @@ function createMockApp(files: Record<string, string> = {}): { app: App; files: R
 
 const SLUG = 'test-campagna';
 const TURNO = 3;
-const STATE_PATH = `campagne/${SLUG}/turno-03/run-state.yaml`;
+const STATE_PATH = `campagne/${SLUG}/turno-03/run-state.md`;
 
 describe('RunStateManager', () => {
   it('returns null when run-state.yaml does not exist', async () => {

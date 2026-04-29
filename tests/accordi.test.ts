@@ -5,7 +5,7 @@ import {
   patchAccordoStato,
 } from '../src/vault/VaultManager';
 import type { Accordo } from '../src/types';
-import { stringifyYaml } from '../src/utils/yaml';
+import { stringifyYaml, buildFileWithFrontmatter } from '../src/utils/yaml';
 import { buildAccordiContext } from '../src/pipeline/accordiContext';
 
 function makeMockApp(initialFiles: Record<string, string> = {}) {
@@ -50,8 +50,8 @@ describe('loadAccordiPubblici', () => {
   });
 
   it('parses existing accordi file', async () => {
-    const content = stringifyYaml({ accordi: [accordoFixture] });
-    const app = makeMockApp({ 'campagne/test/campagna-accordi-pubblici.yaml': content }) as any;
+    const content = buildFileWithFrontmatter({ accordi: [accordoFixture] }, '');
+    const app = makeMockApp({ 'campagne/test/campagna-accordi-pubblici.md': content }) as any;
     const result = await loadAccordiPubblici(app, 'test');
     expect(result.accordi).toHaveLength(1);
     expect(result.accordi[0].id).toBe('accordo-test-1');
@@ -60,7 +60,7 @@ describe('loadAccordiPubblici', () => {
 
   it('retrocompatible with old schema (missing fields get defaults)', async () => {
     const oldFormat = { accordi: [{ fazioni: ['a', 'b'], termini: 'patto' }] };
-    const app = makeMockApp({ 'campagne/test/campagna-accordi-pubblici.yaml': stringifyYaml(oldFormat) }) as any;
+    const app = makeMockApp({ 'campagne/test/campagna-accordi-pubblici.md': buildFileWithFrontmatter(oldFormat, '') }) as any;
     const result = await loadAccordiPubblici(app, 'test');
     expect(result.accordi[0].tipo).toBe('non_aggressione');
     expect(result.accordi[0].stato).toBe('attivo');
@@ -72,7 +72,7 @@ describe('saveAccordoPubblico', () => {
   it('creates the file when it does not exist', async () => {
     const app = makeMockApp() as any;
     await saveAccordoPubblico(app, 'test', accordoFixture);
-    expect('campagne/test/campagna-accordi-pubblici.yaml' in app.store).toBe(true);
+    expect('campagne/test/campagna-accordi-pubblici.md' in app.store).toBe(true);
   });
 
   it('appends to existing accordi', async () => {

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { App } from 'obsidian';
 import type { Accordo, CampagnaPrivata } from '../types';
 import { CAMPAGNE_FOLDER, CAMPAGNA_PRIVATO_FILE } from '../constants';
-import { parseYaml, stringifyYaml } from '../utils/yaml';
+import { parseYaml, parseFrontmatter, buildFileWithFrontmatter } from '../utils/yaml';
 import { AccordoSchema } from './schemas';
 
 const CampagnaPrivataSchema = z.object({
@@ -18,12 +18,12 @@ export async function loadCampagnaPrivata(app: App, slug: string): Promise<Campa
   const exists = await app.vault.adapter.exists(path);
   if (!exists) return { accordi: [] };
   const content = await app.vault.adapter.read(path);
-  const raw = parseYaml<unknown>(content);
+  const raw = parseFrontmatter<unknown>(content) ?? parseYaml<unknown>(content);
   return CampagnaPrivataSchema.parse(raw ?? { accordi: [] });
 }
 
 export async function saveAccordiPrivati(app: App, slug: string, privata: CampagnaPrivata): Promise<void> {
-  await app.vault.adapter.write(privataPath(slug), stringifyYaml(privata));
+  await app.vault.adapter.write(privataPath(slug), buildFileWithFrontmatter(privata, ''));
 }
 
 export async function appendAccordoPrivato(app: App, slug: string, accordo: Accordo): Promise<void> {

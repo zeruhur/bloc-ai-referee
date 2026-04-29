@@ -32,6 +32,7 @@ import { cmdFondiFazioni } from './commands/FondiFazioni';
 import { cmdAggiungiNuovaFazione } from './commands/AggiungiNuovaFazione';
 import { cmdScissioneFazione } from './commands/ScissioneFazione';
 import { cmdChiudiCampagna } from './commands/ChiudiCampagna';
+import { migrateVaultYaml } from './vault/migrateLegacyYaml';
 
 export default class BlocPlugin extends Plugin {
   settings: BlocPluginSettings = DEFAULT_SETTINGS;
@@ -46,15 +47,9 @@ export default class BlocPlugin extends Plugin {
     this.addRibbonIcon('shield', 'BLOC Referee', () => {
       void this.activateRefereeView();
     });
-    this.addRibbonIcon('dice', 'Esegui tiri', () => {
-      void cmdEseguiTiri(this.app, this);
-    });
-    this.addRibbonIcon('book-open', 'Genera conseguenze', () => {
-      void cmdGeneraConseguenze(this.app, this);
-    });
 
     this.app.workspace.onLayoutReady(() => {
-      void this.activateRefereeView();
+      void migrateVaultYaml(this.app).then(() => this.activateRefereeView());
     });
 
     this.addCommand({

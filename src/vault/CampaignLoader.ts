@@ -1,6 +1,6 @@
 import type { App } from 'obsidian';
 import type { Campagna } from '../types';
-import { parseYaml } from '../utils/yaml';
+import { parseYaml, parseFrontmatter } from '../utils/yaml';
 import { CampagnaSchema } from './schemas';
 import {
   CAMPAGNE_FOLDER,
@@ -12,7 +12,7 @@ import {
 export async function loadCampagna(app: App, slug: string): Promise<Campagna> {
   const path = `${CAMPAGNE_FOLDER}/${slug}/${CAMPAGNA_FILE}`;
   const content = await app.vault.adapter.read(path);
-  const raw = parseYaml<unknown>(content);
+  const raw = parseFrontmatter<unknown>(content) ?? parseYaml<unknown>(content);
   return CampagnaSchema.parse(raw);
 }
 

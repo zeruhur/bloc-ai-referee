@@ -30,8 +30,8 @@ export const ESITO_LABELS: Record<Esito, string> = {
 
 export const CAMPAGNE_FOLDER = 'campagne';
 export const FAZIONI_FOLDER = 'fazioni';
-export const CAMPAGNA_FILE = 'campagna.yaml';
-export const CAMPAGNA_PRIVATO_FILE = 'campagna-privato.yaml';
+export const CAMPAGNA_FILE = 'campagna.md';
+export const CAMPAGNA_PRIVATO_FILE = 'campagna-privato.md';
 export const ACTION_FILE_PREFIX = 'azione-';
 export const SECRET_ACTION_SUFFIX = '-segreta';
 export const MATRIX_FILE = 'matrice.md';
@@ -39,10 +39,10 @@ export const ARBITER_MATRIX_FILE = 'matrice-arbitro.md';
 export const ROLLS_FILE = 'tiri.md';
 export const NARRATIVE_FILE = 'narrativa.md';
 export const ORACLE_FILE = 'oracolo.md';
-export const RUN_STATE_FILE = 'run-state.yaml';
-export const LATENT_SUFFIX = '-latenti.yaml';
+export const RUN_STATE_FILE = 'run-state.md';
+export const LATENT_SUFFIX = '-latenti.md';
 export const TURN_FOLDER_PREFIX = 'turno-';
-export const CAMPAGNA_ACCORDI_PUBBLICI_FILE = 'campagna-accordi-pubblici.yaml';
+export const CAMPAGNA_ACCORDI_PUBBLICI_FILE = 'campagna-accordi-pubblici.md';
 
 export const DEFAULT_SETTINGS: BlocPluginSettings = {
   defaultProvider: 'google_ai_studio',

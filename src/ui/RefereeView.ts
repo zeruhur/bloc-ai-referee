@@ -2,9 +2,13 @@ import { ItemView, WorkspaceLeaf } from 'obsidian';
 import type BlocPlugin from '../main';
 import type { Campagna, CampagnaStato } from '../types';
 import type { RunState } from '../vault/RunStateManager';
-import { loadCampagna } from '../vault/CampaignLoader';
+import { loadCampagna, listCampaigns } from '../vault/CampaignLoader';
 import { loadRunState } from '../vault/RunStateManager';
-import { STATO_TRANSITIONS, STATO_LABELS, STATO_ACTION_MAP, STATELESS_ACTIONS } from '../constants';
+import { patchCampagnaLLM } from '../vault/CampaignWriter';
+import { STATO_TRANSITIONS, STATO_LABELS, STATO_ACTION_MAP, STATELESS_ACTIONS, PROVIDER_LABELS } from '../constants';
+import type { LLMProvider } from '../types';
+
+const PROVIDER_ORDER: LLMProvider[] = ['google_ai_studio', 'anthropic', 'openai', 'openrouter', 'ollama'];
 import { refereeEventBus } from './RefereeEventBus';
 import type { RefereeEvent } from './RefereeEventBus';
 
@@ -26,7 +30,7 @@ export class RefereeView extends ItemView {
   onload(): void {
     this.registerEvent(
       this.app.vault.on('modify', file => {
-        if (file.path.endsWith('campagna.yaml') || file.path.endsWith('run-state.yaml')) {
+        if (file.path.endsWith('campagna.md') || file.path.endsWith('run-state.md')) {
           void this.refresh();
         }
       }),
@@ -70,12 +74,82 @@ export class RefereeView extends ItemView {
       ? await loadRunState(this.app, campagna.meta.slug, campagna.meta.turno_corrente)
       : null;
 
+    await this.renderSwitchers(container, campagna);
     this.renderTurnInfo(container, campagna);
     if (campagna) {
       this.renderFlowState(container, campagna.meta.stato, runState);
       this.messagesContainer = this.renderMessagesSection(container);
       this.renderActions(container, campagna.meta.stato, runState);
       this.renderStatelessActions(container);
+    }
+  }
+
+  private async renderSwitchers(container: HTMLElement, campagna: Campagna | null): Promise<void> {
+    const section = container.createEl('div', { cls: 'bloc-section' });
+    section.createEl('h4', { text: 'Configurazione' });
+
+    let slugs: string[] = [];
+    try { slugs = await listCampaigns(this.app); } catch { /* vault not ready */ }
+
+    const campaignRow = section.createEl('div', { cls: 'bloc-switcher-row' });
+    campaignRow.createEl('span', { text: 'Campagna', cls: 'bloc-info-label' });
+    const campaignSel = campaignRow.createEl('select', { cls: 'dropdown bloc-switcher-select' });
+    if (slugs.length === 0) {
+      campaignSel.createEl('option', { text: '— nessuna campagna —', value: '' });
+    } else {
+      for (const s of slugs) {
+        const opt = campaignSel.createEl('option', { text: s, value: s });
+        if (s === this.plugin.settings.defaultCampaignSlug) opt.selected = true;
+      }
+    }
+    campaignSel.addEventListener('change', async () => {
+      this.plugin.settings.defaultCampaignSlug = campaignSel.value;
+      await this.plugin.saveSettings();
+      await this.refresh();
+    });
+
+    if (!campagna) return;
+
+    const slug = campagna.meta.slug;
+
+    const providerRow = section.createEl('div', { cls: 'bloc-switcher-row' });
+    providerRow.createEl('span', { text: 'Provider', cls: 'bloc-info-label' });
+    const providerSel = providerRow.createEl('select', { cls: 'dropdown bloc-switcher-select' });
+    for (const p of PROVIDER_ORDER) {
+      const opt = providerSel.createEl('option', { text: PROVIDER_LABELS[p], value: p });
+      if (p === campagna.llm.provider) opt.selected = true;
+    }
+    providerSel.addEventListener('change', async () => {
+      const newProvider = providerSel.value as LLMProvider;
+      const firstModel = this.plugin.settings.cachedModels?.[newProvider]?.[0];
+      await patchCampagnaLLM(this.app, slug, {
+        provider: newProvider,
+        ...(firstModel ? { model: firstModel } : {}),
+      });
+      await this.refresh();
+    });
+
+    const cachedModels = this.plugin.settings.cachedModels?.[campagna.llm.provider] ?? [];
+    const modelRow = section.createEl('div', { cls: 'bloc-switcher-row' });
+    modelRow.createEl('span', { text: 'Modello', cls: 'bloc-info-label' });
+    if (cachedModels.length > 0) {
+      const modelSel = modelRow.createEl('select', { cls: 'dropdown bloc-switcher-select' });
+      for (const m of cachedModels) {
+        const opt = modelSel.createEl('option', { text: m, value: m });
+        if (m === campagna.llm.model) opt.selected = true;
+      }
+      modelSel.addEventListener('change', async () => {
+        await patchCampagnaLLM(this.app, slug, { model: modelSel.value });
+      });
+    } else {
+      const modelInput = modelRow.createEl('input', {
+        cls: 'bloc-switcher-input',
+        type: 'text',
+        value: campagna.llm.model,
+      } as any);
+      modelInput.addEventListener('change', async () => {
+        await patchCampagnaLLM(this.app, slug, { model: modelInput.value.trim() });
+      });
     }
   }
 

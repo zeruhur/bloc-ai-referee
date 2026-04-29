@@ -1,5 +1,5 @@
 import type { App } from 'obsidian';
-import { stringifyYaml, parseYaml } from '../utils/yaml';
+import { parseYaml, parseFrontmatter, buildFileWithFrontmatter } from '../utils/yaml';
 import { turnPath } from './VaultManager';
 import { RUN_STATE_FILE } from '../constants';
 
@@ -32,7 +32,7 @@ async function saveRunState(app: App, slug: string, turno: number, state: RunSta
   const path = runStatePath(slug, turno);
   const { last_error, ...rest } = state;
   const toWrite = last_error !== undefined ? { ...rest, last_error } : rest;
-  await app.vault.adapter.write(path, stringifyYaml(toWrite));
+  await app.vault.adapter.write(path, buildFileWithFrontmatter(toWrite, ''));
 }
 
 export async function loadRunState(app: App, slug: string, turno: number): Promise<RunState | null> {
@@ -41,7 +41,7 @@ export async function loadRunState(app: App, slug: string, turno: number): Promi
   if (!exists) return null;
   try {
     const content = await app.vault.adapter.read(path);
-    return parseYaml<RunState>(content);
+    return parseFrontmatter<RunState>(content) ?? parseYaml<RunState>(content);
   } catch {
     return null;
   }

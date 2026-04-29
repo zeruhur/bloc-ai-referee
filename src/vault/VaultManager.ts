@@ -5,7 +5,6 @@ import {
   parseFrontmatter,
   patchFrontmatter,
   parseYaml,
-  stringifyYaml,
 } from '../utils/yaml';
 import { turnFolderName } from '../utils/markdown';
 import {
@@ -141,7 +140,7 @@ export async function writeCampaignFile(
   const folder = campaignPath(slug);
   await ensureFolder(app, folder);
   const path = `${folder}/${CAMPAGNA_FILE}`;
-  await app.vault.adapter.write(path, stringifyYaml(campagna));
+  await app.vault.adapter.write(path, buildFileWithFrontmatter(campagna, ''));
 }
 
 export async function writeFactionFile(
@@ -176,14 +175,14 @@ export async function loadAccordiPubblici(app: App, slug: string): Promise<Accor
   const exists = await app.vault.adapter.exists(path);
   if (!exists) return { accordi: [] };
   const content = await app.vault.adapter.read(path);
-  const raw = parseYaml<unknown>(content);
+  const raw = parseFrontmatter<unknown>(content) ?? parseYaml<unknown>(content);
   return AccordiPubbliciSchema.parse(raw ?? { accordi: [] });
 }
 
 export async function saveAccordoPubblico(app: App, slug: string, accordo: Accordo): Promise<void> {
   const current = await loadAccordiPubblici(app, slug);
   current.accordi.push(accordo);
-  await app.vault.adapter.write(accordiPubbliciPath(slug), stringifyYaml(current));
+  await app.vault.adapter.write(accordiPubbliciPath(slug), buildFileWithFrontmatter(current, ''));
 }
 
 export async function patchAccordoStato(
@@ -198,7 +197,7 @@ export async function patchAccordoStato(
   if (pubIdx >= 0) {
     pubblici.accordi[pubIdx].stato = stato;
     if (violazione) pubblici.accordi[pubIdx].violazioni.push(violazione);
-    await app.vault.adapter.write(accordiPubbliciPath(slug), stringifyYaml(pubblici));
+    await app.vault.adapter.write(accordiPubbliciPath(slug), buildFileWithFrontmatter(pubblici, ''));
     return;
   }
 
