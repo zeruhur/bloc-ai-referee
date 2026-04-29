@@ -55,7 +55,7 @@ ${activeFazioni(campagna.fazioni).map(f => `- ${f.id} (${f.nome}): ${f.concetto}
 
 Genera la matrice delle azioni. Per ogni fazione indica:
 - azione dichiarata e metodo sintetico
-- argomento_vantaggio: sintesi dell'argomento di vantaggio dichiarato dalla fazione (copialo fedelmente dalla dichiarazione)
+- argomento_favorevole: sintesi dell'argomento di vantaggio dichiarato dalla fazione (copialo fedelmente dalla dichiarazione)
 - conflitti_con: lista degli ID fazione con cui c'è sovrapposizione o conflitto diretto (vuota se nessuna)`;
 
   return { system, user };

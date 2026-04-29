@@ -4,13 +4,14 @@ import type {
   Campagna,
   DirectConflict,
   EvaluationOutput,
+  LeaderCheckResult,
   LLMAdapter,
   MatrixEntry,
   MatrixOutput,
 } from '../types';
 import { loadActionsForTurn, actionFilePath } from '../vault/ActionLoader';
 import { parseFrontmatter } from '../utils/yaml';
-import { patchActionFrontmatter, matrixFilePath, appendToRollsFile, leaderActionFilePath } from '../vault/VaultManager';
+import { patchActionFrontmatter, matrixFilePath, appendToRollsFile, leaderActionFilePath, turnPath } from '../vault/VaultManager';
 import { readMatrixEntries, mergeMatrixEntries, writeMatrixFiles } from '../vault/MatrixWriter';
 import { patchCampagnaStato } from '../vault/CampaignWriter';
 import { markStepStarted, markStepCompleted, markRunFailed } from '../vault/RunStateManager';
@@ -20,6 +21,16 @@ import { LLMValidationError } from '../llm/LLMAdapter';
 import { getCompressedDeltas, getHistorySummary } from '../utils/contextWindow';
 import { Notice } from 'obsidian';
 import { refereeEventBus } from '../ui/RefereeEventBus';
+import { LEADER_CHECK_FILE } from '../constants';
+
+async function loadLeaderChecks(app: App, slug: string, turno: number): Promise<LeaderCheckResult[]> {
+  const path = `${turnPath(slug, turno)}/${LEADER_CHECK_FILE}`;
+  const exists = await app.vault.adapter.exists(path);
+  if (!exists) return [];
+  const content = await app.vault.adapter.read(path);
+  const data = parseFrontmatter<{ leader_checks: LeaderCheckResult[] }>(content);
+  return data?.leader_checks ?? [];
+}
 
 const STEP_NAME = 'Step2Evaluate';
 
@@ -49,6 +60,7 @@ export async function runStep2Evaluate(
   try {
     const deltas = getCompressedDeltas(campagna.game_state_delta, campagna.llm.provider);
     const historySummary = getHistorySummary(campagna.game_state_delta, campagna.llm.provider);
+    const leaderChecks = await loadLeaderChecks(app, slug, turno_corrente);
     const evaluations: EvaluationOutput[] = [];
 
     for (let i = 0; i < actions.length; i++) {
@@ -79,9 +91,32 @@ export async function runStep2Evaluate(
       }
 
       const evaluation = validation.data;
+
+      // Presenza di Comando: +1 dado positivo se il leader è disponibile
+      if (action.leader_mode === 'presenza_comando') {
+        const lc = leaderChecks.find(r => r.fazione === action.fazione);
+        if (lc?.disponibile) {
+          evaluation.pool.positivi += 1;
+          evaluation.pool.netto = evaluation.pool.positivi - evaluation.pool.negativi;
+          evaluation.pool.modalita = evaluation.pool.netto > 0 ? 'alto' : evaluation.pool.netto < 0 ? 'basso' : 'neutro';
+          evaluation.valutazione_vantaggio.motivazione +=
+            ' + 1 dado positivo (Presenza di Comando del leader)';
+        }
+      }
+
+      // Interventi reattivi di tipo 'aiuto': +1 dado positivo per ogni aiuto ricevuto
+      if (action.argomenti_aiuto && action.argomenti_aiuto.length > 0) {
+        evaluation.pool.positivi += action.argomenti_aiuto.length;
+        evaluation.pool.netto = evaluation.pool.positivi - evaluation.pool.negativi;
+        evaluation.pool.modalita = evaluation.pool.netto > 0 ? 'alto' : evaluation.pool.netto < 0 ? 'basso' : 'neutro';
+        const aiutoFazioni = action.argomenti_aiuto.map(a => a.fazione).join(', ');
+        evaluation.valutazione_vantaggio.motivazione +=
+          ` + ${action.argomenti_aiuto.length} dado/i positivo/i (Aiuto da: ${aiutoFazioni})`;
+      }
+
       evaluations.push(evaluation);
 
-      const filePath = action.tipo_azione === 'leader'
+      const filePath = action.leader_mode === 'azione_leadership'
         ? leaderActionFilePath(slug, turno_corrente, action.fazione)
         : actionFilePath(slug, turno_corrente, action.fazione);
       await patchActionFrontmatter<AzioneDeclaration>(app, filePath, {

@@ -76,15 +76,22 @@ export interface StatoAction { label: string; commandId: string }
 
 export const STATO_ACTION_MAP: Partial<Record<CampagnaStato, StatoAction[]>> = {
   raccolta: [
-    { label: '⚡ Dichiara azione',   commandId: 'bloc-ai-referee:dichiara-azione' },
-    { label: '⚡ Genera matrice',    commandId: 'bloc-ai-referee:genera-matrice' },
-    { label: '⚙ Simula turno (IA)', commandId: 'bloc-ai-referee:simula-turno' },
+    { label: '🗺 Movimento del turno',    commandId: 'bloc-ai-referee:movimento-turno' },
+    { label: '🤝 Registra negoziazione', commandId: 'bloc-ai-referee:registra-negoziazione' },
+    { label: '👑 Check leader del turno', commandId: 'bloc-ai-referee:check-leader-turno' },
+    { label: '⚡ Dichiara azione',        commandId: 'bloc-ai-referee:dichiara-azione' },
+    { label: '⚡ Genera matrice',         commandId: 'bloc-ai-referee:genera-matrice' },
+    { label: '⚙ Simula turno (IA)',      commandId: 'bloc-ai-referee:simula-turno' },
   ],
   matrice_generata: [{ label: '⚡ Auto contro-argomentazione', commandId: 'bloc-ai-referee:auto-contro-argomentazione' }],
   contro_args:      [{ label: '⚡ Valuta azioni',              commandId: 'bloc-ai-referee:valuta-azioni' }],
   valutazione:      [{ label: '⚡ Esegui tiri',                commandId: 'bloc-ai-referee:esegui-tiri' }],
   tiri:             [{ label: '⚡ Genera conseguenze',         commandId: 'bloc-ai-referee:genera-conseguenze' }],
-  review:           [{ label: '✓ Chiudi turno',               commandId: 'bloc-ai-referee:chiudi-turno' }],
+  review: [
+    { label: '⚡ Genera conseguenze',  commandId: 'bloc-ai-referee:genera-conseguenze' },
+    { label: '🔹 Intervento limitato', commandId: 'bloc-ai-referee:intervento-limitato' },
+    { label: '✓ Chiudi turno',        commandId: 'bloc-ai-referee:chiudi-turno' },
+  ],
 };
 
 export interface ActionGroup { title: string; actions: StatoAction[] }
@@ -96,6 +103,7 @@ export const STATELESS_ACTIONS: ActionGroup[] = [
       { label: 'Nuova campagna',        commandId: 'bloc-ai-referee:nuova-campagna' },
       { label: 'Stato campagna',        commandId: 'bloc-ai-referee:stato-campagna' },
       { label: 'Oracolo',               commandId: 'bloc-ai-referee:interroga-oracolo' },
+      { label: 'Check leader turno',    commandId: 'bloc-ai-referee:check-leader-turno' },
       { label: 'Verifica leader',       commandId: 'bloc-ai-referee:verifica-leader' },
       { label: 'Elimina leader',        commandId: 'bloc-ai-referee:elimina-leader' },
       { label: 'Genera leader',         commandId: 'bloc-ai-referee:genera-leader' },
@@ -130,6 +138,11 @@ export const STATELESS_ACTIONS: ActionGroup[] = [
     ],
   },
 ];
+
+export const LEADER_CHECK_FILE = 'leader-check.md';
+export const MOVIMENTO_FILE = 'movimento.md';
+export const INTERVENTO_FILE = 'intervento-limitato.md';
+export const INTERVENTO_REATTIVO_FILE = 'intervento-reattivo.md';
 
 export const LEADER_AVAILABILITY_THRESHOLD = 4;
 

@@ -38,14 +38,14 @@ const baseEntries: MatrixEntry[] = [
     fazione: 'aquila-nord',
     azione: 'Conquista territorio',
     metodo: 'Militare',
-    argomento_vantaggio: 'Forza militare superiore',
+    argomento_favorevole: 'Forza militare superiore',
     conflitti_con: ['lupo-grigio'],
   },
   {
     fazione: 'lupo-grigio',
     azione: 'Difesa perimetrale',
     metodo: 'Tattico',
-    argomento_vantaggio: 'Conoscenza del terreno',
+    argomento_favorevole: 'Conoscenza del terreno',
     conflitti_con: [],
   },
 ];
@@ -146,7 +146,7 @@ describe('readMatrixEntries', () => {
       fazione: 'ombra-segreta',
       azione: 'Sabotaggio',
       metodo: 'Infiltrazione',
-      argomento_vantaggio: 'Invisibilità',
+      argomento_favorevole: 'Invisibilità',
       conflitti_con: [],
     };
     const files = {
@@ -183,7 +183,7 @@ describe('writeMatrixFiles', () => {
       fazione: 'ombra-segreta',
       azione: 'Sabotaggio',
       metodo: 'Infiltrazione',
-      argomento_vantaggio: 'Invisibilità',
+      argomento_favorevole: 'Invisibilità',
       conflitti_con: [],
     };
     const { app, files } = createMockApp({

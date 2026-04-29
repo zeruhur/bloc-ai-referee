@@ -26,7 +26,7 @@ export function buildMatrixFileContent(
       resolveFactionName(a.fazione, fazioni),
       a.azione,
       a.metodo,
-      a.argomento_vantaggio || '—',
+      a.argomento_favorevole || '—',
       a.conflitti_con.map(id => resolveFactionName(id, fazioni)).join(', ') || '—',
     ];
     if (hasControArg) row.push(a.contro_argomentazione || '—');

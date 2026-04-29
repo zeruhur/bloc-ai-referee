@@ -46,7 +46,7 @@ const actionFixture: AzioneDeclaration = {
   categoria_azione: 'standard',
   azione: 'Attaccare il rituale nemico',
   metodo: 'Assalto aereo dalla vetta nord con supporto valanghe',
-  argomento_vantaggio: 'I draghi possono raggiungere il sito del rituale con un attacco aereo fulmineo sfruttando la mobilità aerea superiore',
+  argomento_favorevole: 'I draghi possono raggiungere il sito del rituale con un attacco aereo fulmineo sfruttando la mobilità aerea superiore',
   argomenti_contro: [],
   dettaglio_narrativo: 'QUESTO NON DEVE APPARIRE NEL PROMPT LLM',
 };
@@ -56,7 +56,7 @@ const matrixFixture: MatrixOutput = {
     fazione: 'draghi',
     azione: 'Attaccare il rituale nemico',
     metodo: 'Assalto aereo',
-    argomento_vantaggio: 'Mobilità aerea superiore consente attacco fulmineo',
+    argomento_favorevole: 'Mobilità aerea superiore consente attacco fulmineo',
     conflitti_con: [],
   }],
 };
@@ -108,7 +108,7 @@ describe('buildEvaluatePrompt', () => {
     expect(system).toContain('draghi');
   });
 
-  it('includes the argomento_vantaggio in user prompt', () => {
+  it('includes the argomento_favorevole in user prompt', () => {
     const { user } = buildEvaluatePrompt(campagnaFixture, matrixFixture, actionFixture, []);
     expect(user).toContain('mobilità aerea superiore');
   });

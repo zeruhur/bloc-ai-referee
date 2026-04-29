@@ -57,8 +57,9 @@ export type CampagnaStato =
   | 'chiuso';
 
 export type LLMProvider = 'google_ai_studio' | 'ollama' | 'openai' | 'anthropic' | 'openrouter';
-export type TipoAzione = 'principale' | 'leader';
-export type CategoriaAzione = 'standard' | 'latente' | 'difesa' | 'aiuto' | 'segreta' | 'spionaggio';
+export type TipoAzione = 'principale';
+export type CategoriaAzione = 'standard' | 'latente' | 'difesa' | 'segreta' | 'spionaggio';
+export type TipoReazione = 'svantaggio' | 'aiuto';
 export type TipoFazione = 'normale' | 'ia';
 export type Esito = 'no_e' | 'no' | 'no_ma' | 'si_ma' | 'si' | 'si_e';
 export type Modalita = 'alto' | 'basso' | 'neutro';
@@ -105,6 +106,7 @@ export interface Campagna {
     livello_operativo?: string;
     distribuzione_temporale?: 'lineare' | 'non_lineare';
     intervallo_temporale?: string;
+    usa_mappa?: boolean;
   };
   premessa: string;
   llm: LLMConfig;
@@ -119,6 +121,25 @@ export interface ArgomentoContro {
   argomento: string;
 }
 
+export interface InterventoReattivo {
+  fazione_interveniente: string;
+  fazione_target: string;
+  tipo: TipoReazione;
+  argomento: string;
+  risorsa_usata?: string;
+  turno: number;
+}
+
+export interface LeaderCheckResult {
+  fazione: string;
+  turno: number;
+  dado: number;
+  mc: MC;
+  valore_modificato: number;
+  disponibile: boolean;
+  mode?: 'presenza_comando' | 'azione_leadership' | 'intervento_limitato';
+}
+
 export interface AzioneDeclaration {
   fazione: string;
   giocatore: string;
@@ -127,9 +148,10 @@ export interface AzioneDeclaration {
   categoria_azione: CategoriaAzione;
   azione: string;
   metodo: string;
-  argomento_vantaggio: string;
+  argomento_favorevole: string;
   argomenti_contro: ArgomentoContro[];
-  fazione_aiutata?: string;
+  argomenti_aiuto?: ArgomentoContro[];
+  leader_mode?: 'presenza_comando' | 'azione_leadership' | 'intervento_limitato';
   /** Cost paid for a secret action — the advantage sacrificed. */
   costo_vantaggio?: string;
   /** Target faction for a spionaggio action. */
@@ -161,11 +183,18 @@ export interface LLMAdapter {
 
 // ---- Pipeline step outputs ----
 
+export interface MovimentoTurno {
+  fazione: string;
+  turno: number;
+  descrizione: string;
+  territori_coinvolti?: string[];
+}
+
 export interface MatrixEntry {
   fazione: string;
   azione: string;
   metodo: string;
-  argomento_vantaggio: string;
+  argomento_favorevole: string;
   conflitti_con: string[];
   // Progressive fields added by subsequent pipeline steps
   contro_argomentazione?: string;

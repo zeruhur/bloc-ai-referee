@@ -22,7 +22,7 @@ const spiaAction: AzioneDeclaration = {
   categoria_azione: 'spionaggio',
   azione: 'Infiltra',
   metodo: 'Agente segreto',
-  argomento_vantaggio: 'Rete di spie sviluppata',
+  argomento_favorevole: 'Rete di spie sviluppata',
   argomenti_contro: [],
   target_fazione: 'target',
 };

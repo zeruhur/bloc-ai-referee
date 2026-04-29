@@ -86,7 +86,7 @@ export async function writeActionFile(
   }
   await ensureTurnFolder(app, slug, turno);
   const isSecret = action.categoria_azione === 'segreta';
-  const isLeader = action.tipo_azione === 'leader';
+  const isLeader = action.leader_mode === 'azione_leadership';
   const path = isSecret
     ? secretActionFilePath(slug, turno, action.fazione)
     : isLeader

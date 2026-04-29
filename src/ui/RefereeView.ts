@@ -88,7 +88,7 @@ export class RefereeView extends ItemView {
     if (campagna) {
       this.renderFlowState(container, campagna.meta.stato, runState);
       this.messagesContainer = this.renderMessagesSection(container);
-      this.renderActions(container, campagna.meta.stato, runState);
+      this.renderActions(container, campagna, runState);
     }
     this.renderStatelessActions(container);
   }
@@ -253,13 +253,17 @@ export class RefereeView extends ItemView {
 
   private renderActions(
     container: HTMLElement,
-    stato: CampagnaStato,
+    campagna: Campagna,
     runState: RunState | null,
   ): void {
     const section = container.createEl('div', { cls: 'bloc-section' });
     section.createEl('h4', { text: 'Azioni' });
 
-    const actions = STATO_ACTION_MAP[stato] ?? [];
+    const stato = campagna.meta.stato;
+    const rawActions = STATO_ACTION_MAP[stato] ?? [];
+    const actions = rawActions.filter(a =>
+      a.commandId !== 'bloc-ai-referee:movimento-turno' || campagna.meta.usa_mappa === true,
+    );
     const [first, ...rest] = actions;
 
     if (runState?.status === 'failed' && first) {

@@ -13,7 +13,7 @@ export async function cmdGeneraConseguenze(app: App, plugin: BlocPlugin): Promis
   const campagna = await loadActiveCampagna(app, plugin);
   if (!campagna) return;
 
-  if (campagna.meta.stato !== 'tiri') {
+  if (campagna.meta.stato !== 'tiri' && campagna.meta.stato !== 'review') {
     new Notice(`Comando non disponibile in stato: ${campagna.meta.stato}`);
     return;
   }

@@ -52,7 +52,7 @@ export async function autoGenAzioneIA(
     );
   }
 
-  const { azione, metodo, argomento_vantaggio } = validation.data;
+  const { azione, metodo, argomento_favorevole } = validation.data;
 
   await writeActionFile(app, slug, turno_corrente, {
     fazione: fazione.id,
@@ -62,7 +62,7 @@ export async function autoGenAzioneIA(
     categoria_azione: 'standard',
     azione,
     metodo,
-    argomento_vantaggio,
+    argomento_favorevole,
     argomenti_contro: [],
     azione_extra: fazione.leader ? leaderAvail : undefined,
   });
@@ -91,11 +91,12 @@ export async function autoGenAzioneIA(
           fazione: fazione.id,
           giocatore: 'IA',
           turno: turno_corrente,
-          tipo_azione: 'leader',
+          tipo_azione: 'principale',
           categoria_azione: 'standard',
+          leader_mode: 'azione_leadership',
           azione: lVal.data.azione,
           metodo: lVal.data.metodo,
-          argomento_vantaggio: lVal.data.argomento_vantaggio,
+          argomento_favorevole: lVal.data.argomento_favorevole,
           argomenti_contro: [],
         });
         new Notice(`Azione leader IA generata per ${fazione.nome}.`);

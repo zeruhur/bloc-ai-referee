@@ -1,7 +1,7 @@
 import type { App } from 'obsidian';
-import type { AzioneDeclaration, Campagna, LLMAdapter, MatrixEntry, MatrixOutput } from '../types';
+import type { AzioneDeclaration, Campagna, InterventoReattivo, LLMAdapter, MatrixEntry, MatrixOutput } from '../types';
 import { loadActionsForTurn } from '../vault/ActionLoader';
-import { matrixFilePath, actionFilePath, leaderActionFilePath, patchActionFrontmatter, appendToRollsFile } from '../vault/VaultManager';
+import { matrixFilePath, actionFilePath, leaderActionFilePath, patchActionFrontmatter, appendToRollsFile, turnPath } from '../vault/VaultManager';
 import { readMatrixEntries, mergeMatrixEntries, writeMatrixFiles } from '../vault/MatrixWriter';
 import { patchCampagnaStato } from '../vault/CampaignWriter';
 import { markStepStarted, markStepCompleted, markRunFailed } from '../vault/RunStateManager';
@@ -11,6 +11,16 @@ import { LLMValidationError } from '../llm/LLMAdapter';
 import { getCompressedDeltas, getHistorySummary } from '../utils/contextWindow';
 import { parseYaml } from '../utils/yaml';
 import { refereeEventBus } from '../ui/RefereeEventBus';
+import { INTERVENTO_REATTIVO_FILE } from '../constants';
+
+async function loadInterventiReattivi(app: App, slug: string, turno: number): Promise<InterventoReattivo[]> {
+  const path = `${turnPath(slug, turno)}/${INTERVENTO_REATTIVO_FILE}`;
+  const exists = await app.vault.adapter.exists(path);
+  if (!exists) return [];
+  const content = await app.vault.adapter.read(path);
+  const data = parseYaml<{ interventi: InterventoReattivo[] }>(content);
+  return data?.interventi ?? [];
+}
 
 const STEP_NAME = 'StepCounterArg';
 
@@ -62,7 +72,7 @@ export async function runStepCounterArg(
     // Build a map from fazione → file path(s) so leader actions resolve correctly
     const actionFileMap = new Map<string, string[]>();
     for (const a of actions) {
-      const p = a.tipo_azione === 'leader'
+      const p = a.leader_mode === 'azione_leadership'
         ? leaderActionFilePath(slug, turno_corrente, a.fazione)
         : actionFilePath(slug, turno_corrente, a.fazione);
       const existing = actionFileMap.get(a.fazione) ?? [];
@@ -83,6 +93,23 @@ export async function runStepCounterArg(
         if (!exists) continue;
         await patchActionFrontmatter<AzioneDeclaration>(app, filePath, {
           argomenti_contro: argomenti,
+        } as any);
+      }
+    }
+
+    // ---- Interventi reattivi di tipo 'aiuto' → argomenti_aiuto ----
+    const interventiReattivi = await loadInterventiReattivi(app, slug, turno_corrente);
+    const aiutoInterventi = interventiReattivi.filter(i => i.tipo === 'aiuto');
+    for (const intervento of aiutoInterventi) {
+      const filePaths = actionFileMap.get(intervento.fazione_target) ?? [];
+      for (const filePath of filePaths) {
+        const exists = await app.vault.adapter.exists(filePath);
+        if (!exists) continue;
+        await patchActionFrontmatter<AzioneDeclaration>(app, filePath, {
+          argomenti_aiuto: [{
+            fazione: intervento.fazione_interveniente,
+            argomento: intervento.argomento,
+          }],
         } as any);
       }
     }

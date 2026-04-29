@@ -3,6 +3,7 @@ import type { FazioneConfig } from '../types';
 import type BlocPlugin from '../main';
 import { loadActiveCampagna } from './shared';
 import { patchFazioneLeader, patchFazioneMC } from '../vault/CampaignWriter';
+import { appendToRollsFile } from '../vault/VaultManager';
 import { activeFazioni } from '../utils/factionUtils';
 
 class LeaderPickerModal extends SuggestModal<FazioneConfig> {
@@ -48,10 +49,15 @@ export async function cmdEliminaLeader(app: App, plugin: BlocPlugin): Promise<vo
   );
   if (!fazione) return;
 
-  const { slug } = campagna.meta;
+  const { slug, turno_corrente } = campagna.meta;
   try {
     await patchFazioneLeader(app, slug, fazione.id, false);
     await patchFazioneMC(app, slug, fazione.id, -1);
+
+    const nomeLeader = fazione.leader?.nome ?? 'Il leader';
+    const nota = `## Perdita del Leader\n${nomeLeader} è stato eliminato. La fazione ${fazione.nome} subisce MC -1 e uno svantaggio narrativo da definire.\n`;
+    await appendToRollsFile(app, slug, turno_corrente, nota);
+
     new Notice(`Leader eliminato. MC -1 per ${fazione.nome}.`);
   } catch (e) {
     new Notice(`Errore: ${(e as Error).message}`);

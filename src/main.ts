@@ -16,7 +16,10 @@ import { cmdStatoCampagna } from './commands/StatoCampagna';
 import { cmdAutoControArgomentazione } from './commands/AutoControArgomentazione';
 import { cmdAttivaAzioneLatente } from './commands/AttivaAzioneLatente';
 import { cmdInterrogaOracolo } from './commands/InterrogaOracolo';
-import { cmdVerificaLeader } from './commands/VerificaLeader';
+import { cmdVerificaLeader, cmdCheckLeaderTurno } from './commands/VerificaLeader';
+import { cmdMovimentoTurno } from './commands/MovimentoTurno';
+import { cmdRegistraNegoziazione } from './commands/RegistraNegoziazione';
+import { cmdInterventoLimitato } from './commands/InterventoLimitato';
 import { cmdEliminaLeader } from './commands/EliminaLeader';
 import { cmdRegistraAccordoPrivato } from './commands/RegistraAccordoPrivato';
 import { cmdRegistraAccordoPubblico } from './commands/RegistraAccordoPubblico';
@@ -127,9 +130,33 @@ export default class BlocPlugin extends Plugin {
     });
 
     this.addCommand({
+      id: 'check-leader-turno',
+      name: 'BLOC: Check leader del turno',
+      callback: () => cmdCheckLeaderTurno(this.app, this),
+    });
+
+    this.addCommand({
       id: 'verifica-leader',
-      name: 'BLOC: Verifica disponibilità leader',
+      name: 'BLOC: Verifica disponibilità leader (legacy)',
       callback: () => cmdVerificaLeader(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'movimento-turno',
+      name: 'BLOC: Movimento del turno',
+      callback: () => cmdMovimentoTurno(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'registra-negoziazione',
+      name: 'BLOC: Registra negoziazione',
+      callback: () => cmdRegistraNegoziazione(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'intervento-limitato',
+      name: 'BLOC: Intervento limitato',
+      callback: () => cmdInterventoLimitato(this.app, this),
     });
 
     this.addCommand({

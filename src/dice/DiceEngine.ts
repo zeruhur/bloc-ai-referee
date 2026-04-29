@@ -49,6 +49,20 @@ export function leaderAvailability(mc: MC, seed?: number): boolean {
   return roll + mc >= LEADER_AVAILABILITY_THRESHOLD;
 }
 
+export function leaderCheck(mc: MC, fazione: string, turno: number, seed?: number): import('../types').LeaderCheckResult {
+  const usedSeed = seed ?? Date.now();
+  const dado = rollDie(usedSeed);
+  const valore_modificato = dado + mc;
+  return {
+    fazione,
+    turno,
+    dado,
+    mc,
+    valore_modificato,
+    disponibile: valore_modificato >= LEADER_AVAILABILITY_THRESHOLD,
+  };
+}
+
 const TIPO_AZIONE_IA_TABLE: TipoAzioneIA[] = [
   'Consolidamento', 'Espansione', 'Attacco Diretto', 'Difesa', 'Diplomatico/Politico', 'Evento Speciale',
 ];

@@ -35,7 +35,7 @@ const baseAction: AzioneDeclaration = {
   categoria_azione: 'standard',
   azione: 'Attacca',
   metodo: 'Assalto frontale',
-  argomento_vantaggio: 'Forza superiore',
+  argomento_favorevole: 'Forza superiore',
   argomenti_contro: [],
 };
 

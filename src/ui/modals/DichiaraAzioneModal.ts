@@ -1,21 +1,35 @@
 import { App, Modal, Notice, Setting } from 'obsidian';
 import type { AzioneDeclaration, Campagna, CategoriaAzione, FazioneConfig } from '../../types';
-import { writeActionFile, leaderActionFilePath, fileExists } from '../../vault/VaultManager';
-import { leaderAvailability } from '../../dice/DiceEngine';
+import { writeActionFile, turnPath, fileExists } from '../../vault/VaultManager';
 import { appendToRollsFile } from '../../vault/VaultManager';
 import { declaringFazioni } from '../../utils/factionUtils';
+import { LEADER_CHECK_FILE } from '../../constants';
+import { parseFrontmatter } from '../../utils/yaml';
+import type { LeaderCheckResult } from '../../types';
+
+type LeaderMode = 'presenza_comando' | 'azione_leadership';
 
 type DeclSection = Partial<AzioneDeclaration> & { categoria_azione: CategoriaAzione };
 
-function emptySection(tipo: 'principale' | 'leader'): DeclSection {
-  return { argomenti_contro: [], tipo_azione: tipo, categoria_azione: 'standard' };
+function emptySection(): DeclSection {
+  return { argomenti_contro: [], tipo_azione: 'principale', categoria_azione: 'standard' };
+}
+
+async function loadLeaderCheck(app: App, slug: string, turno: number, fazioneId: string): Promise<LeaderCheckResult | null> {
+  const path = `${turnPath(slug, turno)}/${LEADER_CHECK_FILE}`;
+  const exists = await app.vault.adapter.exists(path);
+  if (!exists) return null;
+  const content = await app.vault.adapter.read(path);
+  const data = parseFrontmatter<{ leader_checks: LeaderCheckResult[] }>(content);
+  return data?.leader_checks?.find(r => r.fazione === fazioneId) ?? null;
 }
 
 export class DichiaraAzioneModal extends Modal {
-  private principal: DeclSection = emptySection('principale');
-  private leader: DeclSection = emptySection('leader');
+  private decl: DeclSection = emptySection();
   private selectedFazione: FazioneConfig | null = null;
   private giocatore = '';
+  private leaderMode: LeaderMode | '' = '';
+  private leaderCheck: LeaderCheckResult | null = null;
 
   constructor(
     app: App,
@@ -29,6 +43,15 @@ export class DichiaraAzioneModal extends Modal {
     this.renderForm();
   }
 
+  private async loadLeaderCheckForFazione(): Promise<void> {
+    if (!this.selectedFazione?.leader?.presente || !this.decl.fazione) {
+      this.leaderCheck = null;
+      return;
+    }
+    const { slug, turno_corrente } = this.campagna.meta;
+    this.leaderCheck = await loadLeaderCheck(this.app, slug, turno_corrente, this.decl.fazione);
+  }
+
   private renderForm(): void {
     const { contentEl } = this;
     contentEl.empty();
@@ -36,24 +59,23 @@ export class DichiaraAzioneModal extends Modal {
 
     const fazionUmane = declaringFazioni(this.campagna.fazioni).filter(f => f.tipo !== 'ia');
 
-    // ---- Fazione + giocatore ----
     new Setting(contentEl)
       .setName('Fazione')
       .addDropdown(d => {
         fazionUmane.forEach(f => d.addOption(f.id, f.nome));
-        d.onChange(v => {
+        d.onChange(async v => {
           this.selectedFazione = this.campagna.fazioni.find(f => f.id === v) ?? null;
-          this.principal.fazione = v;
-          this.leader.fazione = v;
+          this.decl.fazione = v;
+          this.leaderMode = '';
+          await this.loadLeaderCheckForFazione();
           this.renderForm();
         });
         const firstId = fazionUmane[0]?.id;
         if (firstId) {
-          d.setValue(this.principal.fazione ?? firstId);
-          if (!this.principal.fazione) {
+          d.setValue(this.decl.fazione ?? firstId);
+          if (!this.decl.fazione) {
             this.selectedFazione = fazionUmane[0];
-            this.principal.fazione = firstId;
-            this.leader.fazione = firstId;
+            this.decl.fazione = firstId;
           }
         }
       });
@@ -65,69 +87,52 @@ export class DichiaraAzioneModal extends Modal {
         t.onChange(v => { this.giocatore = v; });
       });
 
-    // ---- Azione principale ----
-    contentEl.createEl('h3', { text: 'Azione principale' });
-    this.renderActionSection(contentEl, this.principal, () => this.renderForm());
+    contentEl.createEl('h3', { text: 'Azione' });
+    this.renderActionSection(contentEl);
 
-    // ---- Azione leader (collassabile) ----
-    const leaderNome = this.selectedFazione?.leader?.nome;
-    const details = contentEl.createEl('details');
-    const summary = details.createEl('summary');
-    summary.createEl('strong', {
-      text: leaderNome ? `Azione leader — ${leaderNome}` : 'Azione leader',
-    });
-    summary.createEl('span', {
-      text: ' (opzionale)',
-      cls: 'setting-item-description',
-    });
-    this.renderActionSection(details, this.leader, () => this.renderForm());
+    // ---- Leader mode (visible only if leader.presente && leaderCheck.disponibile) ----
+    const leaderPresente = this.selectedFazione?.leader?.presente === true;
+    const leaderDisponibile = this.leaderCheck?.disponibile === true;
 
-    // ---- Bottoni ----
+    if (leaderPresente && leaderDisponibile) {
+      const leaderNome = this.selectedFazione?.leader?.nome;
+      new Setting(contentEl)
+        .setName(`Modalità leader${leaderNome ? ` — ${leaderNome}` : ''}`)
+        .setDesc('Augmenta o sostituisce l\'azione ordinaria.')
+        .addDropdown(d => {
+          d.addOption('', 'Nessuna');
+          d.addOption('presenza_comando', 'Presenza di Comando');
+          d.addOption('azione_leadership', 'Azione di Leadership');
+          d.setValue(this.leaderMode);
+          d.onChange(v => { this.leaderMode = v as LeaderMode | ''; });
+        });
+    }
+
     const btnRow = contentEl.createDiv({ cls: 'modal-button-container' });
     btnRow.createEl('button', { text: 'Annulla' }).addEventListener('click', () => this.close());
     btnRow.createEl('button', { text: 'Dichiara', cls: 'mod-cta' })
-      .addEventListener('click', () => this.submit());
+      .addEventListener('click', () => void this.submit());
   }
 
-  private renderActionSection(
-    container: HTMLElement,
-    decl: DeclSection,
-    onRerender: () => void,
-  ): void {
+  private renderActionSection(container: HTMLElement): void {
     new Setting(container)
       .setName('Categoria azione')
       .addDropdown(d => d
         .addOption('standard', 'Standard')
         .addOption('latente', 'Latente')
         .addOption('difesa', 'Difesa')
-        .addOption('aiuto', 'Aiuto')
         .addOption('segreta', 'Segreta')
         .addOption('spionaggio', 'Spionaggio')
-        .setValue(decl.categoria_azione)
+        .setValue(this.decl.categoria_azione)
         .onChange(v => {
-          decl.categoria_azione = v as CategoriaAzione;
-          decl.costo_vantaggio = undefined;
-          decl.target_fazione = undefined;
-          decl.fazione_aiutata = undefined;
-          onRerender();
+          this.decl.categoria_azione = v as CategoriaAzione;
+          this.decl.costo_vantaggio = undefined;
+          this.decl.target_fazione = undefined;
+          this.renderForm();
         }));
 
-    if (decl.categoria_azione === 'aiuto') {
-      const altreFazioni = this.campagna.fazioni.filter(f => f.id !== decl.fazione);
-      new Setting(container)
-        .setName('Fazione aiutata')
-        .addDropdown(d => {
-          altreFazioni.forEach(f => d.addOption(f.id, f.nome));
-          if (altreFazioni[0]) {
-            d.setValue(decl.fazione_aiutata ?? altreFazioni[0].id);
-            decl.fazione_aiutata = decl.fazione_aiutata ?? altreFazioni[0].id;
-          }
-          d.onChange(v => { decl.fazione_aiutata = v; });
-        });
-    }
-
-    if (decl.categoria_azione === 'segreta') {
-      const fazione = this.campagna.fazioni.find(f => f.id === decl.fazione);
+    if (this.decl.categoria_azione === 'segreta') {
+      const fazione = this.campagna.fazioni.find(f => f.id === this.decl.fazione);
       container.createEl('p', {
         text: 'Le azioni segrete richiedono il sacrificio di un vantaggio.',
         cls: 'setting-item-description',
@@ -137,12 +142,12 @@ export class DichiaraAzioneModal extends Modal {
         .addDropdown(d => {
           d.addOption('', '— seleziona —');
           (fazione?.vantaggi ?? []).forEach(v => d.addOption(v, v));
-          d.onChange(v => { decl.costo_vantaggio = v || undefined; });
+          d.onChange(v => { this.decl.costo_vantaggio = v || undefined; });
         });
     }
 
-    if (decl.categoria_azione === 'spionaggio') {
-      const altreFazioni = this.campagna.fazioni.filter(f => f.id !== decl.fazione);
+    if (this.decl.categoria_azione === 'spionaggio') {
+      const altreFazioni = this.campagna.fazioni.filter(f => f.id !== this.decl.fazione);
       container.createEl('p', {
         text: 'Dado scoperta pre-pipeline (1d6 + MC_spia − MC_target, soglia 4).',
         cls: 'setting-item-description',
@@ -152,14 +157,14 @@ export class DichiaraAzioneModal extends Modal {
         .addDropdown(d => {
           altreFazioni.forEach(f => d.addOption(f.id, f.nome));
           if (altreFazioni[0]) {
-            d.setValue(decl.target_fazione ?? altreFazioni[0].id);
-            decl.target_fazione = decl.target_fazione ?? altreFazioni[0].id;
+            d.setValue(this.decl.target_fazione ?? altreFazioni[0].id);
+            this.decl.target_fazione = this.decl.target_fazione ?? altreFazioni[0].id;
           }
-          d.onChange(v => { decl.target_fazione = v; });
+          d.onChange(v => { this.decl.target_fazione = v; });
         });
     }
 
-    if (decl.categoria_azione === 'latente') {
+    if (this.decl.categoria_azione === 'latente') {
       container.createEl('p', {
         text: 'Azione latente: salvata fuori dal turno corrente. Attivare con "Attiva azione latente".',
         cls: 'setting-item-description',
@@ -169,50 +174,46 @@ export class DichiaraAzioneModal extends Modal {
     new Setting(container)
       .setName('Azione (max 80 car.)')
       .addText(t => {
-        t.setValue(decl.azione ?? '');
-        t.onChange(v => { decl.azione = v.slice(0, 80); });
+        t.setValue(this.decl.azione ?? '');
+        t.onChange(v => { this.decl.azione = v.slice(0, 80); });
       });
 
     new Setting(container)
       .setName('Metodo (max 200 car.)')
       .addTextArea(t => {
-        t.setValue(decl.metodo ?? '');
-        t.onChange(v => { decl.metodo = v.slice(0, 200); });
+        t.setValue(this.decl.metodo ?? '');
+        t.onChange(v => { this.decl.metodo = v.slice(0, 200); });
       });
 
     new Setting(container)
-      .setName('Argomento di vantaggio')
+      .setName('Argomento favorevole')
       .setDesc('Perché questa fazione ha le capacità per riuscire in questa azione.')
       .addTextArea(t => {
-        t.setValue(decl.argomento_vantaggio ?? '');
-        t.onChange(v => { decl.argomento_vantaggio = v; });
+        t.setValue(this.decl.argomento_favorevole ?? '');
+        t.onChange(v => { this.decl.argomento_favorevole = v; });
       });
 
     new Setting(container)
       .setName('Dettaglio narrativo (opzionale)')
       .setDesc('Solo layer umano, non inviato all\'LLM')
       .addTextArea(t => {
-        t.setValue(decl.dettaglio_narrativo ?? '');
-        t.onChange(v => { decl.dettaglio_narrativo = v; });
+        t.setValue(this.decl.dettaglio_narrativo ?? '');
+        t.onChange(v => { this.decl.dettaglio_narrativo = v; });
       });
   }
 
   private async submit(): Promise<void> {
-    const { campagna, principal, leader, giocatore } = this;
+    const { campagna, decl, giocatore } = this;
 
-    if (!principal.fazione || !principal.azione || !principal.metodo || !principal.argomento_vantaggio) {
-      new Notice('Compila tutti i campi obbligatori dell\'azione principale.');
+    if (!decl.fazione || !decl.azione || !decl.metodo || !decl.argomento_favorevole) {
+      new Notice('Compila tutti i campi obbligatori.');
       return;
     }
-    if (principal.categoria_azione === 'aiuto' && !principal.fazione_aiutata) {
-      new Notice('Seleziona la fazione aiutata.');
-      return;
-    }
-    if (principal.categoria_azione === 'segreta' && !principal.costo_vantaggio) {
+    if (decl.categoria_azione === 'segreta' && !decl.costo_vantaggio) {
       new Notice('Seleziona il vantaggio sacrificato per l\'azione segreta.');
       return;
     }
-    if (principal.categoria_azione === 'spionaggio' && !principal.target_fazione) {
+    if (decl.categoria_azione === 'spionaggio' && !decl.target_fazione) {
       new Notice('Seleziona la fazione bersaglio.');
       return;
     }
@@ -220,74 +221,24 @@ export class DichiaraAzioneModal extends Modal {
     const { slug, turno_corrente } = campagna.meta;
     const giocatoreVal = giocatore || 'Arbitro';
 
-    const fullPrincipal: AzioneDeclaration = {
-      fazione: principal.fazione!,
+    const fullDecl: AzioneDeclaration = {
+      fazione: decl.fazione!,
       giocatore: giocatoreVal,
       turno: turno_corrente,
       tipo_azione: 'principale',
-      categoria_azione: principal.categoria_azione,
-      azione: principal.azione!,
-      metodo: principal.metodo!,
-      argomento_vantaggio: principal.argomento_vantaggio!,
+      categoria_azione: decl.categoria_azione,
+      azione: decl.azione!,
+      metodo: decl.metodo!,
+      argomento_favorevole: decl.argomento_favorevole!,
       argomenti_contro: [],
-      fazione_aiutata: principal.fazione_aiutata,
-      costo_vantaggio: principal.costo_vantaggio,
-      target_fazione: principal.target_fazione,
-      dettaglio_narrativo: principal.dettaglio_narrativo,
+      leader_mode: this.leaderMode || undefined,
+      costo_vantaggio: decl.costo_vantaggio,
+      target_fazione: decl.target_fazione,
+      dettaglio_narrativo: decl.dettaglio_narrativo,
     };
 
-    await writeActionFile(this.app, slug, turno_corrente, fullPrincipal);
-
-    // ---- Azione leader (opzionale: solo se compilata) ----
-    if (leader.azione?.trim()) {
-      if (leader.categoria_azione === 'aiuto' && !leader.fazione_aiutata) {
-        new Notice('Seleziona la fazione aiutata per l\'azione leader.');
-        return;
-      }
-      if (leader.categoria_azione === 'segreta' && !leader.costo_vantaggio) {
-        new Notice('Seleziona il vantaggio sacrificato per l\'azione leader segreta.');
-        return;
-      }
-      if (leader.categoria_azione === 'spionaggio' && !leader.target_fazione) {
-        new Notice('Seleziona la fazione bersaglio per l\'azione leader.');
-        return;
-      }
-
-      const fazione = campagna.fazioni.find(f => f.id === leader.fazione);
-      const available = leaderAvailability(fazione?.mc ?? 0);
-
-      if (!available) {
-        await appendToRollsFile(
-          this.app, slug, turno_corrente,
-          `## Leader ${leader.fazione} — Turno ${turno_corrente}\nLeader NON disponibile questo turno.\n`,
-        );
-        new Notice(`Azione principale dichiarata. Leader di ${principal.fazione} non disponibile questo turno.`);
-        this.onComplete();
-        this.close();
-        return;
-      }
-
-      const fullLeader: AzioneDeclaration = {
-        fazione: leader.fazione ?? principal.fazione!,
-        giocatore: giocatoreVal,
-        turno: turno_corrente,
-        tipo_azione: 'leader',
-        categoria_azione: leader.categoria_azione,
-        azione: leader.azione!,
-        metodo: leader.metodo ?? '',
-        argomento_vantaggio: leader.argomento_vantaggio ?? '',
-        argomenti_contro: [],
-        fazione_aiutata: leader.fazione_aiutata,
-        costo_vantaggio: leader.costo_vantaggio,
-        target_fazione: leader.target_fazione,
-        dettaglio_narrativo: leader.dettaglio_narrativo,
-      };
-
-      await writeActionFile(this.app, slug, turno_corrente, fullLeader);
-      new Notice(`Azione principale + azione leader dichiarate per ${principal.fazione}.`);
-    } else {
-      new Notice(`Azione dichiarata per ${principal.fazione}.`);
-    }
+    await writeActionFile(this.app, slug, turno_corrente, fullDecl);
+    new Notice(`Azione dichiarata per ${decl.fazione}.`);
 
     this.onComplete();
     this.close();

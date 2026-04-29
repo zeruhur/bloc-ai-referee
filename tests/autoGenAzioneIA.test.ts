@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { ActionDeclOutputZod } from '../src/pipeline/schemas/actionDeclSchema';
 
-const baseOutput = { azione: 'Attaccare il confine est', argomento_vantaggio: 'Posizione vantaggiosa' };
+const baseOutput = { azione: 'Attaccare il confine est', argomento_favorevole: 'Posizione vantaggiosa' };
 
 describe('autoGenAzioneIA — metodo sanitization', () => {
   it('Zod rejects metodo > 200 chars without sanitization', () => {
