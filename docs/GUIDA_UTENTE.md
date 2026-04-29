@@ -121,6 +121,28 @@ raccolta → matrice_generata → contro_args → valutazione → tiri → revie
 
 Ogni fase richiede lo stato corretto. Tutti gli step che producono file sono **idempotenti**: rieseguirli sovrascrive l'output precedente previo conferma.
 
+### Pre-step opzionali (fase raccolta)
+
+Prima di dichiarare le azioni, l'arbitro può eseguire tre comandi preparatori:
+
+**`BLOC: Check leader del turno`** — tira `1d6 + MC` per ogni fazione con leader presente. Se il risultato è ≥ 4, il leader è disponibile: un modal chiede di scegliere la **modalità** per il turno:
+
+| Modalità | Effetto |
+|---|---|
+| Presenza di Comando | L'azione ordinaria della fazione riceve +1 dado positivo in valutazione |
+| Azione di Leadership | L'azione dichiarata sostituisce quella ordinaria della fazione |
+| Intervento Limitato | Il leader interviene solo in fase review (vedi [Intervento Limitato](#intervento-limitato)) |
+
+Il risultato viene scritto in `leader-check.md` del turno corrente. Se il dado non raggiunge la soglia, il leader non è disponibile e nessuna modalità viene assegnata.
+
+**`BLOC: Registra negoziazione`** — registra un accordo formale o una nota di coordinazione informale tra fazioni. Scegli tra:
+- **Accordo formale** → apre il form standard degli accordi (privato o pubblico)
+- **Nota negoziazione** → scrive solo un testo libero in `negoziazione.md` del turno, senza struttura formale — utile per coordinazioni che non hanno ancora forma di accordo
+
+**`BLOC: Movimento del turno`** — disponibile solo se la campagna ha `usa_mappa: true` nel frontmatter. Apre un form con fazione, descrizione del movimento e territori coinvolti (opzionale). L'output viene scritto in `movimento.md` del turno.
+
+---
+
 ### Fase 1 — Raccolta dichiarazioni
 
 **Stato richiesto:** `raccolta`
@@ -133,15 +155,17 @@ Usa **`BLOC: Dichiara azione`** per ogni fazione. Le fazioni marcate `tipo: ia` 
 |---|---|---|
 | **Fazione** | — | Seleziona tra le fazioni umane della campagna |
 | **Giocatore** | — | Nome o handle del giocatore |
-| **Tipo azione** | — | `principale`, `leader`, `latente`, `difesa` |
 | **Azione** | 80 car. | Obiettivo sintetico dell'azione |
 | **Metodo** | 200 car. | Come viene eseguita |
-| **Argomento di vantaggio** | libero | *Perché* questa fazione ha le capacità e le condizioni per riuscire in questa azione specifica |
+| **Argomento favorevole** | libero | *Perché* questa fazione ha le capacità e le condizioni per riuscire in questa azione specifica |
+| **Modalità leader** | — | Visibile solo se il leader è presente **e** disponibile (check del turno ≥ 4). Opzioni: *Nessuna*, *Presenza di Comando*, *Azione di Leadership* |
 | **Dettaglio narrativo** | libero | Solo per layer umano — **non inviato all'LLM** |
 
-> **L'argomento di vantaggio è contestuale, non generico.** Non basta dire "siamo bravi in combattimento" — argomenta rispetto all'azione specifica: *"I Draghi attaccano di notte sfruttando la loro visione notturna e l'effetto sorpresa sul versante nord, ancora privo di sentinelle."* Un argomento pertinente e dettagliato vale più dadi.
+> **L'argomento favorevole è contestuale, non generico.** Non basta dire "siamo bravi in combattimento" — argomenta rispetto all'azione specifica: *"I Draghi attaccano di notte sfruttando la loro visione notturna e l'effetto sorpresa sul versante nord, ancora privo di sentinelle."* Un argomento pertinente e dettagliato vale più dadi.
 
-> **Tipo `leader`**: il plugin tira automaticamente `1d6 + MC`. Se il risultato è < 4, il leader non è disponibile: il form non si apre e l'evento viene registrato in `tiri.md`.
+> **Modalità leader**: il dropdown appare solo se prima del turno è stato eseguito `BLOC: Check leader del turno` e il leader risulta disponibile. *Intervento Limitato* non è selezionabile qui — va gestito in fase review.
+
+> **Categoria `aiuto` rimossa**: l'aiuto tra fazioni si gestisce ora con gli *interventi reattivi* (vedi sotto), che permettono di dichiarare il supporto dopo la pubblicazione della matrice, in modo narrativamente più coerente.
 
 Quando tutte le fazioni hanno dichiarato, usa **`BLOC: Genera matrice`**: l'LLM analizza le dichiarazioni e produce `matrice.md` con tabella leggibile e frontmatter machine-readable. Lo stato avanza a `matrice_generata`.
 
@@ -190,9 +214,19 @@ I risultati vengono salvati in `tiri.md` con seed, dadi e esito per ogni azione.
 
 ### Checkpoint 2 — Revisione narrativa
 
-**Stato richiesto:** `tiri`
+**Stato richiesto:** `tiri` → `review`
 
-**`BLOC: Genera conseguenze`** — l'LLM interpreta i risultati dei tiri e produce `narrativa.md` con le conseguenze di ogni azione nel contesto della campagna. Il file è editabile liberamente prima di condividerlo con i giocatori — le modifiche non influenzano lo stato della macchina.
+**`BLOC: Genera conseguenze`** — l'LLM interpreta i risultati dei tiri e produce `narrativa.md` con le conseguenze di ogni azione nel contesto della campagna. Il file è editabile liberamente prima di condividerlo con i giocatori — le modifiche non influenzano lo stato della macchina. Lo stato avanza a `review`.
+
+In fase `review` sono disponibili due azioni aggiuntive prima di chiudere il turno:
+
+**`BLOC: Intervento limitato`** — permette a un leader con modalità *Intervento Limitato* (o all'arbitro) di registrare un piccolo intervento post-narrativa che non costituisce un'azione dichiarata e non genera nuovi tiri. Il form richiede:
+- Fazione che interviene
+- Descrizione dell'intervento
+- Tipo di effetto (consolida risultato / contiene complicazione / sostiene alleato / protegge coesione)
+- Una checkbox di conferma esplicita dopo aver verificato i **guardrail** mostrati nel form: l'intervento non deve richiedere dichiarazione strutturata, non deve generare opposizione significativa, non deve produrre tiri di dadi, non deve avviare un conflitto diretto
+
+L'output viene scritto in `intervento-limitato.md` del turno. Non modifica la matrice né chiama la pipeline.
 
 **`BLOC: Chiudi turno`** — archivia i file del turno in `turno-NN/archivio/`, aggiorna il `narrative_seed` in `campagna.yaml` e prepara il turno successivo. Lo stato torna a `raccolta`.
 
@@ -204,8 +238,8 @@ Per ogni fazione IA senza dichiarazione:
 
 1. Tira `rollTipoAzioneIA` (1d6) — tipo tematico: *Consolidamento, Espansione, Attacco Diretto, Difesa, Diplomatico/Politico, Evento Speciale*
 2. Inietta il tipo nel prompt come vincolo (*"orienta l'azione verso questa categoria"*)
-3. Chiama l'LLM per generare `azione`, `metodo` e `argomento_vantaggio` → scrive `azione-{id}.md`
-4. Se la fazione ha il leader presente (`leader.presente: true`), genera **sempre** anche l'azione leader con una seconda chiamata LLM → scrive `azione-{id}-leader.md` (nessun tiro di dado: se il leader è presente, agisce)
+3. Chiama l'LLM per generare `azione`, `metodo` e `argomento_favorevole` → scrive `azione-{id}.md`
+4. Se la fazione ha il leader presente (`leader.presente: true`), genera **sempre** anche l'azione di leadership con una seconda chiamata LLM → scrive `azione-{id}-leader.md` con `leader_mode: azione_leadership` (nessun tiro di dado: se il leader è presente, agisce)
 
 Le reazioni tra fazioni IA usano `rollReactionTable` (1d6: 1–2 Ostile, 3–4 Neutrale, 5–6 Collaborativa). I conflitti IA-vs-IA usano `rollIAConflictOutcome` (1d6: 1–2 Vittoria totale, 3–4 Vittoria parziale, 5–6 Stallo) — senza chiamate LLM.
 
@@ -281,6 +315,17 @@ Usa **`BLOC: Attiva azione latente`** per renderle operative al momento opportun
 
 Le azioni con `categoria_azione: difesa` non richiedono un obiettivo offensivo. La valutazione LLM le tratta come risposta reattiva: gli argomenti difensivi vengono valutati con più attenzione al contesto e, in caso di parità di netto nel conflitto diretto, il difensore prevale.
 
+### Interventi reattivi (aiuto e svantaggio)
+
+Dopo la pubblicazione di `matrice.md`, una fazione può dichiarare un intervento reattivo verso l'azione di un'altra fazione:
+
+- **Aiuto** — la fazione interveniente supporta la fazione target fornendo una risorsa o un argomento favorevole. Ogni aiuto aggiunge +1 dado positivo al pool della fazione target in Step 2.
+- **Svantaggio** — la fazione interveniente si oppone con un argomento specifico (simile a un contro-argomento).
+
+Gli interventi reattivi si scrivono direttamente in `intervento-reattivo.md` del turno (file YAML). `BLOC: Auto contro-argomentazione` li legge automaticamente e li incorpora nella valutazione.
+
+> Questa meccanica sostituisce la vecchia categoria `aiuto` in `DichiaraAzione`. La separazione temporale — dichiarazione prima, aiuto dopo la matrice — è più fedele alla procedura del gioco.
+
 ### Azioni segrete
 
 Le azioni con `categoria_azione: segreta` vengono risolte **nel turno corrente** — entrano nel pipeline LLM normalmente — ma non appaiono nella `matrice.md` pubblica condivisa con i giocatori. L'arbitro può consultare `matrice-arbitro.md` che le include con il marcatore `[SEGRETO]`.
@@ -355,7 +400,7 @@ Il risultato viene appeso a `campagne/{slug}/oracolo.md` con turno, dado, modifi
 
 ## 10. Meccanica Leader
 
-Il leader è un personaggio chiave che può agire come risorsa aggiuntiva nel turno, ma la cui disponibilità non è garantita.
+Il leader è un personaggio chiave che può agire come risorsa aggiuntiva nel turno, ma la cui disponibilità non è garantita. La meccanica si articola in tre fasi: check di disponibilità, scelta della modalità, utilizzo durante il turno.
 
 ### Configurare un leader
 
@@ -369,23 +414,47 @@ leader:
 
 Per aggiungere un leader a una fazione già esistente usa **`BLOC: Genera leader fazione`** — genera nome e profilo tramite LLM, poi li salva in `campagna.md` e nella scheda fazione.
 
-### Verificare la disponibilità
+### Check di disponibilità del turno
 
-**Comando:** `BLOC: Verifica disponibilità leader`
+**Comando:** `BLOC: Check leader del turno`
 
-Tira `1d6 + MC` per ogni fazione **umana** con leader. Con risultato ≥ 4 il leader è disponibile (`presente: true`); altrimenti `presente: false`. Una notice elenca i leader disponibili nel turno.
+All'inizio di ogni turno (fase `raccolta`), esegui il check prima di dichiarare le azioni. Il plugin tira `1d6 + MC` per ogni fazione con leader presente:
 
-Per le fazioni IA non viene effettuato alcun tiro: se `leader.presente: true`, l'azione leader viene sempre generata automaticamente durante `BLOC: Dichiara azione`.
+- **Risultato ≥ 4** → leader disponibile: un modal chiede di scegliere la **modalità** per questo turno
+- **Risultato < 4** → leader non disponibile: nessuna azione speciale
 
-### Usare il leader
+Il risultato (dado, MC, valore modificato, disponibilità, modalità scelta) viene salvato in `leader-check.md` del turno corrente.
 
-Dichiara un'azione con `tipo_azione: leader`. Il form verifica automaticamente la disponibilità prima di procedere: se il leader non è disponibile, la dichiarazione viene bloccata e l'evento registrato in `tiri.md`.
+### Modalità leader
+
+| Modalità | Come si usa | Effetto meccanico |
+|---|---|---|
+| **Presenza di Comando** | Il giocatore dichiara l'azione ordinaria; nel form seleziona *Presenza di Comando* come modalità leader | +1 dado positivo aggiunto automaticamente in Step 2 (Valuta azioni) |
+| **Azione di Leadership** | Il giocatore dichiara un'azione che sostituisce quella ordinaria della fazione; seleziona *Azione di Leadership* | Nessun bonus automatico — l'azione entra nel pipeline normalmente |
+| **Intervento Limitato** | Non si dichiara nulla ora; si usa il comando `BLOC: Intervento limitato` in fase review | Intervento narrativo post-review senza tiri (vedi [Checkpoint 2](#checkpoint-2--revisione-narrativa)) |
+
+> **Per le fazioni IA**: nessun tiro di dado. Se `leader.presente: true`, l'azione di leadership viene sempre generata automaticamente come seconda chiamata LLM durante `BLOC: Dichiara azione`.
+
+### Usare la modalità leader nel form
+
+Il dropdown **Modalità leader** appare nel form di `BLOC: Dichiara azione` solo se:
+1. La fazione selezionata ha `leader.presente: true`
+2. Il check del turno ha prodotto `disponibile: true` per quella fazione
+
+Se il check non è stato eseguito o il leader non è disponibile, il dropdown non compare e l'azione viene dichiarata normalmente.
+
+*Intervento Limitato* non è selezionabile da questo form — va gestito esclusivamente in fase review.
 
 ### Eliminazione
 
 **Comando:** `BLOC: Elimina leader fazione`
 
-Seleziona la fazione dal picker (mostra solo fazioni con `leader.presente === true`). Il plugin imposta `presente: false` e applica MC −1.
+Seleziona la fazione dal picker (mostra solo fazioni con `leader.presente === true`). Il plugin:
+1. Imposta `leader.presente: false`
+2. Applica MC −1 (clampato a −1)
+3. Aggiunge una nota in `tiri.md`: *"[nome] è stato eliminato. La fazione [nome] subisce MC −1 e uno svantaggio narrativo da definire."*
+
+Lo svantaggio narrativo è una nota aperta per l'arbitro, non un effetto automatico.
 
 ## 11. Accordi e alleanze
 
@@ -485,12 +554,17 @@ campagne/
     │   ├── {slug}.md                    # Scheda fazione (frontmatter + corpo narrativo)
     │   └── {slug}-latenti.md            # Azioni latenti archiviate (frontmatter)
     └── turno-NN/
-        ├── azione-{fazione}.md          # Dichiarazioni normali del turno
-        ├── azione-{fazione}-leader.md   # Azione leader (se presente)
+        ├── azione-{fazione}.md          # Dichiarazioni del turno (con leader_mode opzionale)
+        ├── azione-{fazione}-leader.md   # Azione leadership IA (se fazione IA con leader)
         ├── azione-{fazione}-segreta.md  # Azioni segrete (solo per l'arbitro)
+        ├── leader-check.md              # Risultati check leader del turno
+        ├── movimento.md                 # Movimenti su mappa (se usa_mappa: true)
+        ├── negoziazione.md              # Note negoziali informali del turno
+        ├── intervento-reattivo.md       # Interventi reattivi (aiuto/svantaggio) post-matrice
+        ├── intervento-limitato.md       # Interventi post-review registrati in fase review
         ├── matrice.md                   # Output Step 1 — pubblica (no segrete)
         ├── matrice-arbitro.md           # Output Step 1 — completa (include segrete)
-        ├── tiri.md                      # Seed, dadi, esiti (include tiri spionaggio)
+        ├── tiri.md                      # Seed, dadi, esiti (include tiri spionaggio e note leader)
         ├── narrativa.md                 # Output Step 3
         └── run-state.md                 # Stato interno pipeline (frontmatter)
 ```
@@ -535,13 +609,17 @@ Assicurati che Ollama sia in ascolto prima di usare i comandi. L'URL base predef
 | Comando | Stato richiesto | Descrizione |
 |---|---|---|
 | `BLOC: Nuova campagna` | sempre | Wizard di creazione campagna |
+| `BLOC: Check leader del turno` | `raccolta` | Tira disponibilità leader (1d6+MC), chiede modalità se disponibile, scrive `leader-check.md` |
+| `BLOC: Registra negoziazione` | `raccolta` | Registra accordo formale o nota informale di coordinazione |
+| `BLOC: Movimento del turno` | `raccolta` | Registra movimenti su mappa (solo se `usa_mappa: true`) |
 | `BLOC: Dichiara azione` | `raccolta` | Auto-gen fazioni IA + form fazioni umane; se tutte IA lancia automaticamente Genera matrice |
 | `BLOC: Genera matrice` | `raccolta` | LLM Step 1 — produce `matrice.md` + `matrice-arbitro.md` |
 | `BLOC: Aggiorna svantaggi` | `matrice_generata` | Inserimento manuale contro-argomentazioni |
-| `BLOC: Auto contro-argomentazione` | `matrice_generata` | LLM genera le contro-argomentazioni |
-| `BLOC: Valuta azioni` | `contro_args` | LLM Step 2 — valuta argomenti e calcola pool |
+| `BLOC: Auto contro-argomentazione` | `matrice_generata` | LLM genera le contro-argomentazioni (include interventi reattivi `aiuto` da `intervento-reattivo.md`) |
+| `BLOC: Valuta azioni` | `contro_args` | LLM Step 2 — valuta argomenti, calcola pool (+1 dado per `presenza_comando` e `aiuto`) |
 | `BLOC: Esegui tiri` | `valutazione` | Tira i dadi (deterministico, no LLM) |
-| `BLOC: Genera conseguenze` | `tiri` | LLM Step 3 — produce `narrativa.md` |
+| `BLOC: Genera conseguenze` | `tiri` / `review` | LLM Step 3 — produce `narrativa.md` |
+| `BLOC: Intervento limitato` | `review` | Registra un intervento post-review con guardrail di validità |
 | `BLOC: Chiudi turno` | `review` | Scade accordi, archivia e prepara il turno successivo |
 | `BLOC: Stato campagna` | sempre | Riepilogo campagna e fazioni |
 
@@ -551,8 +629,8 @@ Assicurati che Ollama sia in ascolto prima di usare i comandi. L'URL base predef
 |---|---|---|
 | `BLOC: Attiva azione latente` | sempre | Attiva un'azione latente archiviata |
 | `BLOC: Interroga oracolo` | sempre | Risposta Sì/No a domanda (dado modificato) |
-| `BLOC: Verifica disponibilità leader` | sempre | Tira disponibilità leader (fazioni umane), aggiorna `campagna.md` |
-| `BLOC: Elimina leader fazione` | sempre | Segna leader come eliminato (MC −1) |
+| `BLOC: Verifica disponibilità leader` | sempre | Alias legacy di Check leader del turno |
+| `BLOC: Elimina leader fazione` | sempre | Segna leader come eliminato (MC −1, nota narrativa in `tiri.md`) |
 | `BLOC: Genera leader fazione` | sempre | Genera nome e profilo leader tramite LLM |
 | `BLOC: Registra accordo privato` | sempre | Salva accordo segreto in `campagna-privato.md` |
 | `BLOC: Registra accordo pubblico` | sempre | Registra accordo pubblico iniettato nel contesto LLM |

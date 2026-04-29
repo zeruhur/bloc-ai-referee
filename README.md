@@ -16,14 +16,16 @@ Il plugin implementa una pipeline LLM a step separati per valutare le dichiarazi
 - **Doppio layer di output** — frontmatter machine-readable per il contesto LLM + corpo Markdown leggibile per i giocatori
 - **Sidebar interattiva** — campagna, provider e modello selezionabili e modificabili direttamente dalla sidebar, senza aprire le impostazioni
 - **Chiavi API sicure** — salvate nei dati del plugin, mai nei file della vault
-- **Fazioni IA** — auto-genera la dichiarazione di azione per fazioni non controllate da giocatori, con tipo procedurale (tabella 1d6) iniettato nel prompt; se il leader è presente genera sempre anche l'azione leader (seconda chiamata LLM)
+- **Fazioni IA** — auto-genera la dichiarazione di azione per fazioni non controllate da giocatori, con tipo procedurale (tabella 1d6) iniettato nel prompt; se il leader è presente genera sempre anche l'azione leadership (seconda chiamata LLM)
 - **Tabelle procedurali IA** — tipo azione, reaction e conflitti IA-vs-IA risolti da tabelle Mulberry32, senza LLM
 - **Oracolo Yes/No** — risponde a domande dell'arbitro con dado modificabile (Improbabile/Neutro/Probabile), log in `oracolo.md`
-- **Meccanica Leader** — nome, disponibilità per turno (1d6 + MC per fazioni umane), eliminazione con penalità MC; per fazioni IA l'azione leader è sempre generata quando il leader è presente
+- **Meccanica Leader** — check di disponibilità per turno (1d6 + MC), tre modalità: *Presenza di Comando* (+1 dado positivo all'azione ordinaria), *Azione di Leadership* (sostituisce l'azione ordinaria), *Intervento Limitato* (post-review); eliminazione con penalità MC e nota narrativa automatica
 - **Fog of War completo** — azioni segrete (risolte nel turno ma invisibili nella matrice pubblica), spionaggio con dado scoperta pre-pipeline, doppia matrice (pubblica + arbitro)
-- **Accordi e alleanze** — accordi pubblici e privati iniettati nel contesto LLM; tradimento con penalità MC; scadenza automatica in `ChiudiTurno`
+- **Accordi e alleanze** — accordi pubblici e privati iniettati nel contesto LLM; negoziazioni informali registrabili; tradimento con penalità MC; scadenza automatica in `ChiudiTurno`
+- **Interventi reattivi** — aiuto e svantaggio dichiarabili dopo la pubblicazione della matrice, incorporati come argomenti favorevoli nella valutazione
 - **Contro-argomentazione automatizzata** — l'LLM può generare le contro-argomentazioni al posto dei giocatori
 - **Modalità asincrona** — i giocatori possono dichiarare in momenti diversi; la modalità sincrona è un sottoinsieme dello stesso flusso
+- **Supporto mappa** — fase opzionale di movimento per campagne con cartografia (attivabile con `usa_mappa: true`)
 - **Gestione ciclo di vita fazioni** — elimina, sospendi, fondi, scindi, cambia controllo IA/umano, modifica profilo e vantaggi mid-campagna; pipeline completamente automatizzata per campagne interamente IA
 
 ---
@@ -63,18 +65,22 @@ Per la guida completa vedi [GUIDA_UTENTE.md](docs/GUIDA_UTENTE.md).
 | Comando | Stato | Funzione |
 |---|---|---|
 | `BLOC: Nuova campagna` | sempre | Wizard di creazione campagna |
+| `BLOC: Check leader del turno` | `raccolta` | Tira disponibilità leader (1d6 + MC), chiede la modalità (Presenza di Comando / Azione di Leadership / Intervento Limitato), scrive `leader-check.md` |
+| `BLOC: Registra negoziazione` | `raccolta` | Registra accordo formale o nota informale di coordinazione tra fazioni |
+| `BLOC: Movimento del turno` | `raccolta` | Registra i movimenti della fazione sulla mappa (solo se `usa_mappa: true`) |
 | `BLOC: Dichiara azione` | `raccolta` | Form dichiarazione + auto-gen fazioni IA; se tutte IA avanza automaticamente a matrice |
 | `BLOC: Genera matrice` | `raccolta` | LLM Step 1 — genera la matrice delle azioni del turno |
 | `BLOC: Aggiorna svantaggi` | `matrice_generata` | Registra manualmente le contro-argomentazioni |
 | `BLOC: Auto contro-argomentazione` | `matrice_generata` | LLM genera automaticamente le contro-argomentazioni |
 | `BLOC: Valuta azioni` | `contro_args` | LLM Step 2 — valuta gli argomenti e calcola i pool di dadi |
 | `BLOC: Esegui tiri` | `valutazione` | Tira i dadi deterministicamente e registra i risultati |
-| `BLOC: Genera conseguenze` | `tiri` | LLM Step 3 — genera la narrativa e aggiorna lo stato di campagna |
+| `BLOC: Genera conseguenze` | `tiri` / `review` | LLM Step 3 — genera la narrativa e aggiorna lo stato di campagna |
+| `BLOC: Intervento limitato` | `review` | Registra un intervento post-review con guardrail di validità |
 | `BLOC: Chiudi turno` | `review` | Archivia il turno corrente e prepara quello successivo |
 | `BLOC: Stato campagna` | sempre | Mostra il riepilogo dello stato attuale |
 | `BLOC: Interroga oracolo` | sempre | Risposta Yes/No a una domanda (dado modificato), log in `oracolo.md` |
-| `BLOC: Verifica disponibilità leader` | sempre | Tira disponibilità leader per tutte le fazioni, aggiorna `campagna.md` |
-| `BLOC: Elimina leader fazione` | sempre | Segna il leader come eliminato (MC −1 per la fazione) |
+| `BLOC: Verifica disponibilità leader` | sempre | Alias legacy di Check leader del turno |
+| `BLOC: Elimina leader fazione` | sempre | Segna il leader come eliminato (MC −1, nota narrativa) |
 | `BLOC: Registra accordo privato` | sempre | Salva un accordo segreto tra fazioni in `campagna-privato.md` |
 | `BLOC: Registra accordo pubblico` | sempre | Registra un accordo pubblico tra fazioni (iniettato nel contesto LLM) |
 | `BLOC: Dichiara tradimento` | sempre | Viola un accordo attivo (MC −1 alla fazione traditrice) |
@@ -109,9 +115,13 @@ Per la guida completa vedi [GUIDA_UTENTE.md](docs/GUIDA_UTENTE.md).
       {slug}.md                       ← scheda fazione (profilo, obiettivo)
       {slug}-latenti.md               ← azioni latenti archiviate (frontmatter)
     /turno-01/
-      azione-{fazione}.md             ← dichiarazione azione
-      azione-{fazione}-leader.md      ← azione leader (se presente)
+      azione-{fazione}.md             ← dichiarazione azione (con leader_mode opzionale)
+      azione-{fazione}-leader.md      ← azione leadership IA (se fazione IA con leader)
       azione-{fazione}-segreta.md     ← azione segreta (solo per l'arbitro)
+      leader-check.md                 ← risultati check leader del turno (dado, MC, modalità)
+      movimento.md                    ← movimenti turno su mappa (se usa_mappa: true)
+      intervento-limitato.md          ← interventi post-review registrati in fase review
+      intervento-reattivo.md          ← interventi reattivi (aiuto/svantaggio) post-matrice
       matrice.md                      ← output Step 1 (pubblica — no azioni segrete)
       matrice-arbitro.md              ← output Step 1 completo (include segrete)
       tiri.md                         ← log deterministico dei dadi (include tiri spionaggio)
