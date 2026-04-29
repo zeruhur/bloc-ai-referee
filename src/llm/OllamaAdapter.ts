@@ -37,13 +37,15 @@ export class OllamaAdapter implements LLMAdapter {
     }
 
     const rawText: string = res.json?.message?.content ?? '';
+    // Some thinking models (deepseek-r1, qwen3) embed <think>…</think> in content before the JSON
+    const cleanText = rawText.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
     let parsed: unknown;
     try {
-      parsed = JSON.parse(rawText);
+      parsed = JSON.parse(cleanText);
     } catch {
       throw new LLMValidationError('Ollama response is not valid JSON', rawText);
     }
 
-    return { content: rawText, parsed, model: this.model };
+    return { content: cleanText, parsed, model: this.model };
   }
 }
