@@ -43,7 +43,11 @@ export const matrixOutputSchema = {
   required: ['azioni'],
 } as const;
 
-export const MatrixOutputZod = z.object({
-  azioni: z.array(MatrixEntrySchema),
-  matrice_arbitro: z.array(MatrixEntrySchema).optional(),
-});
+export const MatrixOutputZod = z.preprocess(
+  // Some models return the array directly instead of wrapping in {azioni: [...]}
+  (data) => (Array.isArray(data) ? { azioni: data } : data),
+  z.object({
+    azioni: z.array(MatrixEntrySchema),
+    matrice_arbitro: z.array(MatrixEntrySchema).optional(),
+  }),
+);

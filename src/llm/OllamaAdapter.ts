@@ -15,7 +15,8 @@ export class OllamaAdapter implements LLMAdapter {
         { role: 'system', content: prompt.system },
         { role: 'user', content: prompt.user },
       ],
-      format: 'json',
+      // Pass the JSON schema when available (Ollama 0.5+); fall back to generic JSON mode
+      format: prompt.output_schema ?? 'json',
       stream: false,
       options: {
         temperature: prompt.temperature,
