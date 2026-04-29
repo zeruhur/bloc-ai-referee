@@ -18,6 +18,7 @@ export class RefereeView extends ItemView {
   private messages: RefereeEvent[] = [];
   private unsubscribeBus?: () => void;
   private messagesContainer: HTMLElement | null = null;
+  private refreshTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(leaf: WorkspaceLeaf, private plugin: BlocPlugin) {
     super(leaf);
@@ -27,11 +28,19 @@ export class RefereeView extends ItemView {
   getDisplayText(): string { return 'BLOC Referee'; }
   getIcon(): string { return 'shield'; }
 
+  private scheduleRefresh(): void {
+    if (this.refreshTimer !== null) clearTimeout(this.refreshTimer);
+    this.refreshTimer = setTimeout(() => {
+      this.refreshTimer = null;
+      void this.refresh();
+    }, 150);
+  }
+
   onload(): void {
     this.registerEvent(
       this.app.vault.on('modify', file => {
         if (file.path.endsWith('campagna.md') || file.path.endsWith('run-state.md')) {
-          void this.refresh();
+          this.scheduleRefresh();
         }
       }),
     );
