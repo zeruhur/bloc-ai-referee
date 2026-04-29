@@ -243,20 +243,40 @@ Ogni giocatore in **BLOC** controlla una fazione, che viene definita dai seguent
 
 ### Leader (Opzionale)
 
-Il leader è una risorsa preziosa per la fazione, ma la sua perdita può avere conseguenze significative sia a livello strategico che narrativo.
+La fazione può avere un leader, una figura di spicco capace di orientare la strategia, rafforzare la coesione interna e influenzare gli eventi.
 
-1. **Azione Extra:** Il leader garantisce un’azione aggiuntiva nel turno in cui è disponibile.  
-2. **Azioni Speciali del Leader:**  
+Determina la disponibilità del leader tirando 1d6 + MC (Modificatore di Coesione).
+Con 4+, il leader è presente per quel turno.
+Con 1-3, il leader è assente o non può incidere direttamente.
 
-* Il leader può dedicare un’azione a migliorare la **coesione della fazione**, Tira 1d6 \+ MC:  
-  * **4+**: La coesione aumenta di 1 livello (es. da MC \-1 a MC 0).  
-  * **1-3**: La coesione non cambia, ma l’azione viene comunque consumata.  
-* Il leader può tentare di **ridurre la coesione di un’altra fazione**, utilizzando strumenti narrativi come sabotaggi, propaganda o corruzione. Gli effetti e le modalità sono determinati dall’arbitro in base al contesto.  
+Quando il leader è presente, la fazione sceglie una sola delle seguenti opzioni:
 
-1. **Eliminazione del Leader**: Se il leader viene eliminato (ad esempio in seguito a un conflitto o un’azione mirata):  
+* **Presenza di Comando**: il leader sostiene l’azione normale della fazione. Se la sua presenza è coerente con quanto dichiarato, l’Arbitro può concedere 1 dado positivo.
+* **Azione di Leadership**: il leader compie un’azione speciale che sostituisce l’azione normale della fazione. Esempi: rafforzare la coesione, ricomporre tensioni interne, consolidare un’alleanza, prevenire una crisi, coordinare una ritirata ordinata.
+* **Intervento Limitato**: dopo la risoluzione dell’azione principale della fazione, il leader può introdurre un effetto narrativo breve e immediato, strettamente coerente con l’esito appena emerso. L’Intervento Limitato non è un’azione autonoma e non segue la normale procedura delle azioni: non viene dichiarato nella fase di dichiarazione, non genera una nuova fase di reazioni e non costruisce una riserva di dadi propria.
 
-* La fazione subisce un **calo immediato di coesione** (MC \-1).  
-* La fazione riceve uno **svantaggio narrativo** deciso dall’arbitro, che potrebbe includere disorganizzazione interna, morale ridotto o la perdita di risorse o alleati chiave.
+  L’Arbitro ne valuta direttamente la plausibilità e l’impatto, trattandolo come una conseguenza minore, un consolidamento o un contenimento dell’esito già ottenuto.
+
+  L’Intervento Limitato non può:
+
+  * conquistare territori;
+  * avviare conflitti diretti;
+  * annullare un esito già risolto;
+  * produrre da solo un cambiamento strategico maggiore;
+  * sostituire l’azione principale della fazione.
+
+  Può essere usato solo per:
+
+  * consolidare un risultato ottenuto;
+  * contenere una complicazione;
+  * sostenere un alleato già coinvolto nella scena;
+  * proteggere la coesione della fazione.
+
+Se il leader viene eliminato, la fazione subisce immediatamente MC -1 e riceve inoltre uno svantaggio narrativo deciso dall’Arbitro.
+
+> **Nota:** se l’effetto desiderato richiederebbe una dichiarazione strutturata, opposizione significativa, tiro di dadi o potrebbe generare un conflitto diretto, allora non è un Intervento Limitato e deve essere trattato come una normale azione in un turno successivo.
+
+> **Nota:** il leader non fornisce normalmente un’azione extra completa. La sua presenza modifica il peso narrativo e strategico della fazione, senza alterare in modo stabile la struttura base del turno.
 
 ## Turno di Gioco
 
@@ -275,7 +295,7 @@ Ogni round di gioco si svolge seguendo questa sequenza.
 
 3. **Dichiarazione delle Azioni**
    * Ogni fazione, a turno nell'ordine stabilito dal tavolo o dallo scenario, dichiara la propria azione secondo il formato del punto 4.
-   * Se una fazione dispone di un leader presente, può ottenere l'eventuale azione extra prevista dalle regole.
+   * Se una fazione dispone di un leader presente, può applicarne gli effetti secondo le regole del leader.
    * La fase termina quando tutte le fazioni hanno dichiarato.
 
 4. **Formato della Dichiarazione**
@@ -957,12 +977,13 @@ Anche in modalità solitaria, le alleanze e gli accordi possono essere gestiti t
 
 Utilizza questo template per creare uno scenario personalizzato per **BLOC**, adatto al gioco multigiocatore. Ogni sezione contiene istruzioni su cosa inserire per fornire un contesto chiaro e stimolante ai giocatori.
 
-#### Titolo dello Scenario
+```
+## Titolo dello Scenario
 
 Dai un nome evocativo allo scenario che catturi il tema e l’atmosfera del conflitto.  
 *Esempio*: *La Guerra delle Sette Alleanze*
 
-#### Descrizione Generale dello Scenario
+### Descrizione Generale dello Scenario
 
 Descrivi il contesto generale in cui si svolgerà la partita, includendo informazioni sul mondo, le tensioni esistenti e il motivo del conflitto.
 
@@ -970,13 +991,13 @@ Descrivi il contesto generale in cui si svolgerà la partita, includendo informa
 * **Tono**: (es. drammatico, epico, realistico, satirico.)  
 * **Tensione Principale**: (es. "La lotta per la supremazia tra antichi imperi e nuove repubbliche.")
 
-#### Obiettivo Generale
+### Obiettivo Generale
 
 Definisci l’obiettivo condiviso o il tema centrale che guida il conflitto. Può essere collaborativo, competitivo o misto.
 
 *Esempio*: "Ottenere il controllo del Consiglio Universale per stabilire una pace duratura (o manipolarlo per i propri scopi)."
 
-#### Intervallo Temporale
+### Intervallo Temporale
 
 Definisci la scala temporale della partita per stabilire il ritmo della narrazione e il contesto delle azioni.
 
@@ -988,7 +1009,7 @@ Definisci la scala temporale della partita per stabilire il ritmo della narrazio
    * **Non Lineare**: Gli intervalli temporali cambiano per riflettere l’importanza degli eventi.  
      * *Esempio*: "I primi turni rappresentano giorni, gli ultimi coprono anni."
 
-#### Fazioni
+### Fazioni
 
 Definisci le fazioni in gioco. Ogni fazione dovrebbe avere un’identità unica e obiettivi che la distinguano dalle altre.
 
@@ -1002,14 +1023,14 @@ Definisci le fazioni in gioco. Ogni fazione dovrebbe avere un’identità unica 
 5. **Obiettivo Specifico**: Un obiettivo che guida le azioni della fazione durante la partita.  
    *Esempio*: "Consolidare il controllo su tre porti principali del continente."
 
-#### Mappa o Asset Strategici (Opzionale)
+### Mappa o Asset Strategici (Opzionale)
 
 Includi una mappa o un elenco di territori e risorse chiave da conquistare, difendere o utilizzare.
 
 * **Territori**: (es. "Capitale Imperiale, Fortezza dei Monti Neri, Porti del Sud.")  
 * **Risorse Chiave**: (es. "Minerali preziosi, rotte commerciali, supporto popolare.")
 
-#### Condizioni di Vittoria
+### Condizioni di Vittoria
 
 Descrivi le condizioni che determinano il termine della partita e come una fazione può vincere.
 
@@ -1019,7 +1040,7 @@ Descrivi le condizioni che determinano il termine della partita e come una fazio
 * "Eliminare o assoggettare tutte le altre fazioni."  
 * "Concludere un’alleanza duratura tra almeno tre fazioni e rispettarla per due turni."
 
-#### Regole Aggiuntive o Moduli
+### Regole Aggiuntive o Moduli
 
 Includi eventuali regole speciali o moduli aggiuntivi che si applicano a questo scenario.
 
@@ -1028,19 +1049,19 @@ Includi eventuali regole speciali o moduli aggiuntivi che si applicano a questo 
 * "Le Alleanze devono essere registrate pubblicamente per essere valide."  
 * "Eventi Casuali possono essere introdotti ogni 3 turni."
 
-#### Suggerimenti per l’Arbitro
+### Suggerimenti per l’Arbitro
 
 Fornisci indicazioni per l’Arbitro su come gestire lo scenario, mantenendo l’equilibrio e incoraggiando la creatività dei giocatori.
 
 *Esempio*: "Usa il modulo Nebbia di guerra per mantenere tensione e mistero durante i movimenti delle truppe."
 
-#### Evento Iniziale (Opzionale)
+### Evento Iniziale (Opzionale)
 
 Descrivi un evento che dà il via alla partita, fornendo un inizio narrativo condiviso.
 
 *Esempio*: "Un emissario imperiale viene assassinato durante i negoziati di pace, riaccendendo il conflitto tra le fazioni."
 
-#### Tabelle di Spunto (Opzionale)
+### Tabelle di Spunto (Opzionale)
 
 Includi tabelle per generare dinamiche o eventi casuali durante la partita.
 
@@ -1051,6 +1072,8 @@ Includi tabelle per generare dinamiche o eventi casuali durante la partita.
 | 1    | Una carestia colpisce i territori centrali.                  |
 | 2    | Un’alleanza segreta viene rivelata pubblicamente.            |
 | 3    | Una tecnologia innovativa cambia l’equilibrio del conflitto. |
+
+```
 
 ### La Guerra dei Nove Settori
 
