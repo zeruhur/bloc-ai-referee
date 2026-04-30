@@ -317,12 +317,16 @@ Le azioni con `categoria_azione: difesa` non richiedono un obiettivo offensivo. 
 
 ### Interventi reattivi (aiuto e svantaggio)
 
-Dopo la pubblicazione di `matrice.md`, una fazione può dichiarare un intervento reattivo verso l'azione di un'altra fazione:
+Dopo la pubblicazione di `matrice.md`, una fazione può dichiarare un intervento reattivo verso l'azione di un'altra fazione usando il comando **`BLOC: Dichiara intervento reattivo`** (disponibile in stato `matrice_generata`). Gli interventi sono **opzionali**: se nessuno li dichiara, la pipeline prosegue normalmente.
+
+**Tipi di intervento:**
 
 - **Aiuto** — la fazione interveniente supporta la fazione target fornendo una risorsa o un argomento favorevole. Ogni aiuto aggiunge +1 dado positivo al pool della fazione target in Step 2.
-- **Svantaggio** — la fazione interveniente si oppone con un argomento specifico (simile a un contro-argomento).
+- **Svantaggio** — la fazione interveniente si oppone con un argomento specifico (incorporato come contro-argomento).
 
-Gli interventi reattivi si scrivono direttamente in `intervento-reattivo.md` del turno (file YAML). `BLOC: Auto contro-argomentazione` li legge automaticamente e li incorpora nella valutazione.
+**Form:** fazione interveniente → fazione target → tipo → argomento (testo libero) → risorsa usata (opzionale).
+
+Il risultato viene scritto in `intervento-reattivo.md` del turno (formato YAML, più interventi ammessi). `BLOC: Auto contro-argomentazione` legge automaticamente il file e incorpora gli interventi nella valutazione.
 
 > Questa meccanica sostituisce la vecchia categoria `aiuto` in `DichiaraAzione`. La separazione temporale — dichiarazione prima, aiuto dopo la matrice — è più fedele alla procedura del gioco.
 
@@ -615,6 +619,7 @@ Assicurati che Ollama sia in ascolto prima di usare i comandi. L'URL base predef
 | `BLOC: Dichiara azione` | `raccolta` | Auto-gen fazioni IA + form fazioni umane; se tutte IA lancia automaticamente Genera matrice |
 | `BLOC: Genera matrice` | `raccolta` | LLM Step 1 — produce `matrice.md` + `matrice-arbitro.md` |
 | `BLOC: Aggiorna svantaggi` | `matrice_generata` | Inserimento manuale contro-argomentazioni |
+| `BLOC: Dichiara intervento reattivo` | `matrice_generata` | Registra aiuto (+1 dado) o svantaggio reattivo verso un'altra fazione (opzionale, multipli ammessi) |
 | `BLOC: Auto contro-argomentazione` | `matrice_generata` | LLM genera le contro-argomentazioni (include interventi reattivi `aiuto` da `intervento-reattivo.md`) |
 | `BLOC: Valuta azioni` | `contro_args` | LLM Step 2 — valuta argomenti, calcola pool (+1 dado per `presenza_comando` e `aiuto`) |
 | `BLOC: Esegui tiri` | `valutazione` | Tira i dadi (deterministico, no LLM) |

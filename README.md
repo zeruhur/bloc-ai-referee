@@ -72,6 +72,7 @@ Per la guida completa vedi [GUIDA_UTENTE.md](docs/GUIDA_UTENTE.md).
 | `BLOC: Genera matrice` | `raccolta` | LLM Step 1 — genera la matrice delle azioni del turno |
 | `BLOC: Aggiorna svantaggi` | `matrice_generata` | Registra manualmente le contro-argomentazioni |
 | `BLOC: Auto contro-argomentazione` | `matrice_generata` | LLM genera automaticamente le contro-argomentazioni |
+| `BLOC: Dichiara intervento reattivo` | `matrice_generata` | Registra aiuto o svantaggio reattivo post-matrice (opzionale, incorporato in Step 2) |
 | `BLOC: Valuta azioni` | `contro_args` | LLM Step 2 — valuta gli argomenti e calcola i pool di dadi |
 | `BLOC: Esegui tiri` | `valutazione` | Tira i dadi deterministicamente e registra i risultati |
 | `BLOC: Genera conseguenze` | `tiri` / `review` | LLM Step 3 — genera la narrativa e aggiorna lo stato di campagna |

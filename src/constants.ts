@@ -83,7 +83,10 @@ export const STATO_ACTION_MAP: Partial<Record<CampagnaStato, StatoAction[]>> = {
     { label: '⚡ Genera matrice',         commandId: 'bloc-ai-referee:genera-matrice' },
     { label: '⚙ Simula turno (IA)',      commandId: 'bloc-ai-referee:simula-turno' },
   ],
-  matrice_generata: [{ label: '⚡ Auto contro-argomentazione', commandId: 'bloc-ai-referee:auto-contro-argomentazione' }],
+  matrice_generata: [
+    { label: '⚡ Auto contro-argomentazione',  commandId: 'bloc-ai-referee:auto-contro-argomentazione' },
+    { label: '🔄 Dichiara intervento reattivo', commandId: 'bloc-ai-referee:dichiara-intervento-reattivo' },
+  ],
   contro_args:      [{ label: '⚡ Valuta azioni',              commandId: 'bloc-ai-referee:valuta-azioni' }],
   valutazione:      [{ label: '⚡ Esegui tiri',                commandId: 'bloc-ai-referee:esegui-tiri' }],
   tiri:             [{ label: '⚡ Genera conseguenze',         commandId: 'bloc-ai-referee:genera-conseguenze' }],

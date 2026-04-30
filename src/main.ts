@@ -20,6 +20,7 @@ import { cmdVerificaLeader, cmdCheckLeaderTurno } from './commands/VerificaLeade
 import { cmdMovimentoTurno } from './commands/MovimentoTurno';
 import { cmdRegistraNegoziazione } from './commands/RegistraNegoziazione';
 import { cmdInterventoLimitato } from './commands/InterventoLimitato';
+import { cmdInterventoReattivo } from './commands/InterventoReattivo';
 import { cmdEliminaLeader } from './commands/EliminaLeader';
 import { cmdRegistraAccordoPrivato } from './commands/RegistraAccordoPrivato';
 import { cmdRegistraAccordoPubblico } from './commands/RegistraAccordoPubblico';
@@ -157,6 +158,12 @@ export default class BlocPlugin extends Plugin {
       id: 'intervento-limitato',
       name: 'BLOC: Intervento limitato',
       callback: () => cmdInterventoLimitato(this.app, this),
+    });
+
+    this.addCommand({
+      id: 'dichiara-intervento-reattivo',
+      name: 'BLOC: Dichiara intervento reattivo',
+      callback: () => cmdInterventoReattivo(this.app, this),
     });
 
     this.addCommand({
