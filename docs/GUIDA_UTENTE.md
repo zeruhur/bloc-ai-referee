@@ -175,11 +175,11 @@ Quando tutte le fazioni hanno dichiarato, usa **`BLOC: Genera matrice`**: l'LLM 
 
 Dopo aver condiviso `matrice.md` con i giocatori, le fazioni avversarie possono sollevare argomenti contrari. Hai due opzioni:
 
-**`BLOC: Aggiorna svantaggi`** — form manuale con l'elenco delle azioni; inserisci l'argomento per ogni fazione avversaria (lascia vuoto se non si oppone). Ideale per campagne multiplayer con discussione tra i giocatori.
+**`BLOC: Aggiorna svantaggi`** — form manuale con l'elenco delle azioni; inserisci l'argomento per ogni fazione avversaria (lascia vuoto se non si oppone). Ideale per campagne multiplayer con discussione tra i giocatori. Porta lo stato a `contro_args`.
 
-**`BLOC: Auto contro-argomentazione`** — l'LLM determina autonomamente quali fazioni si opporrebbero razionalmente a quali azioni e genera l'argomento. Ideale per campagne solitarie o per velocizzare il flusso.
+**`BLOC: Auto contro-argomentazione`** — l'LLM determina autonomamente quali fazioni si opporrebbero razionalmente a quali azioni e genera l'argomento. Ideale per campagne solitarie o per velocizzare il flusso. Porta lo stato a `contro_args`.
 
-Entrambe portano allo stato `contro_args`.
+**Flusso misto (giocatori umani + fazioni IA):** puoi usare i due comandi in sequenza. Prima `BLOC: Aggiorna svantaggi` per raccogliere i contributi umani, poi `BLOC: Auto contro-argomentazione` per colmare i gap rimasti vuoti. Il secondo comando riconosce gli argomenti già inseriti e aggiunge dall'LLM solo le fazioni avversarie non ancora coperte — il contributo umano non viene sovrascritto.
 
 ### Fase 2 — Valutazione e dadi
 
@@ -620,7 +620,7 @@ Assicurati che Ollama sia in ascolto prima di usare i comandi. L'URL base predef
 | `BLOC: Genera matrice` | `raccolta` | LLM Step 1 — produce `matrice.md` + `matrice-arbitro.md` |
 | `BLOC: Aggiorna svantaggi` | `matrice_generata` | Inserimento manuale contro-argomentazioni |
 | `BLOC: Dichiara intervento reattivo` | `matrice_generata` | Registra aiuto (+1 dado) o svantaggio reattivo verso un'altra fazione (opzionale, multipli ammessi) |
-| `BLOC: Auto contro-argomentazione` | `matrice_generata` | LLM genera le contro-argomentazioni (include interventi reattivi `aiuto` da `intervento-reattivo.md`) |
+| `BLOC: Auto contro-argomentazione` | `matrice_generata` / `contro_args` | LLM genera le contro-argomentazioni (include interventi reattivi `aiuto` da `intervento-reattivo.md`); in flusso misto, fa merge con i contributi umani già presenti |
 | `BLOC: Valuta azioni` | `contro_args` | LLM Step 2 — valuta argomenti, calcola pool (+1 dado per `presenza_comando` e `aiuto`) |
 | `BLOC: Esegui tiri` | `valutazione` | Tira i dadi (deterministico, no LLM) |
 | `BLOC: Genera conseguenze` | `tiri` / `review` | LLM Step 3 — produce `narrativa.md` |
@@ -672,6 +672,8 @@ Questo è fedele a come BLOC funziona: i vantaggi non sono token da spendere, ma
 ### Qual è la differenza tra "Aggiorna svantaggi" e "Auto contro-argomentazione"?
 
 `BLOC: Aggiorna svantaggi` apre un form dove inserisci manualmente gli argomenti contrari raccolti dai giocatori — ideale per campagne multiplayer con discussione asincrona. `BLOC: Auto contro-argomentazione` chiede all'LLM di generarli autonomamente — ideale per solitaria o per velocizzare il flusso.
+
+I due comandi sono **componibili**: in una campagna mista (giocatori umani + fazioni IA) puoi usare prima `Aggiorna svantaggi` per raccogliere i contributi umani, poi `Auto contro-argomentazione` per completare le fazioni rimanenti. Il secondo comando legge gli argomenti già presenti e aggiunge solo quelli mancanti — senza toccare ciò che i giocatori hanno scritto.
 
 ### Ho eseguito un comando per errore — posso ripartire?
 
