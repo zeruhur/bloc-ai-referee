@@ -13,7 +13,7 @@ export async function cmdAutoControArgomentazione(app: App, plugin: BlocPlugin):
   const campagna = await loadActiveCampagna(app, plugin);
   if (!campagna) return;
 
-  if (campagna.meta.stato !== 'matrice_generata') {
+  if (campagna.meta.stato !== 'matrice_generata' && campagna.meta.stato !== 'contro_args') {
     new Notice(`Comando non disponibile in stato: ${campagna.meta.stato}`);
     return;
   }

@@ -84,9 +84,17 @@ export async function runStepCounterArg(
       const filePaths = actionFileMap.get(entry.fazione_target) ?? [];
       if (filePaths.length === 0) continue;
 
-      const argomenti = entry.argomenti.filter(
-        a => a.argomento.trim() !== '' && a.fazione !== entry.fazione_target,
+      const existingAction = actions.find(a => a.fazione === entry.fazione_target);
+      const existingArgomenti = (existingAction?.argomenti_contro ?? []).filter(
+        a => a.argomento.trim() !== '',
       );
+      const existingFazioni = new Set(existingArgomenti.map(a => a.fazione));
+
+      const fromLLM = entry.argomenti.filter(
+        a => a.argomento.trim() !== '' && a.fazione !== entry.fazione_target && !existingFazioni.has(a.fazione),
+      );
+
+      const argomenti = [...existingArgomenti, ...fromLLM];
 
       for (const filePath of filePaths) {
         const exists = await app.vault.adapter.exists(filePath);
