@@ -241,7 +241,12 @@ export class DichiaraAzioneModal extends Modal {
     };
 
     await writeActionFile(this.app, slug, turno_corrente, fullDecl);
-    new Notice(`Azione dichiarata per ${decl.fazione}.`);
+
+    if (decl.categoria_azione === 'latente') {
+      new Notice(`Azione latente salvata per ${decl.fazione} (fazioni/${decl.fazione}-latenti.md). Usare "Attiva azione latente" per inserirla nel turno.`);
+    } else {
+      new Notice(`Azione dichiarata per ${decl.fazione}.`);
+    }
 
     this.onComplete();
     this.close();
