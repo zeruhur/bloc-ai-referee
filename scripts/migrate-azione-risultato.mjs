@@ -9,7 +9,7 @@
  * With --write:    applies changes in place.
  */
 
-import { readFileSync, writeFileSync, readdirSync, statSync } from 'fs';
+import { readFileSync, writeFileSync, readdirSync, statSync, existsSync } from 'fs';
 import { join, resolve } from 'path';
 import yaml from 'js-yaml';
 
@@ -153,6 +153,18 @@ function processLatentFile(path) {
 // ---- Main ----
 
 const CAMPAGNE_ROOT = join(VAULT_ROOT, 'campagne');
+
+if (!existsSync(CAMPAGNE_ROOT)) {
+  console.error(`Cartella non trovata: ${CAMPAGNE_ROOT}`);
+  console.error(`Controlla che il percorso del vault sia corretto e che contenga una cartella "campagne/".`);
+  console.error(`Contenuto di ${VAULT_ROOT}:`);
+  try {
+    readdirSync(VAULT_ROOT).forEach(f => console.error(`  ${f}`));
+  } catch {
+    console.error('  (impossibile leggere la cartella — percorso vault errato?)');
+  }
+  process.exit(1);
+}
 
 let total = 0;
 
