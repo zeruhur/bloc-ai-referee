@@ -16,7 +16,7 @@ export function buildMatrixFileContent(
   const hasValutazione = entries.some(e => e.valutazione);
   const hasEsito = entries.some(e => e.esito_tiro);
 
-  const headers = ['Fazione', 'Azione', 'Metodo', 'Argomento vantaggio', 'Conflitti'];
+  const headers = ['Fazione', 'Risultato', 'Azione', 'Argomento vantaggio', 'Conflitti'];
   if (hasControArg) headers.push('Contro-argomentazione');
   if (hasValutazione) headers.push('Pool dadi', 'Motivazione');
   if (hasEsito) headers.push('Tiro', 'Esito');
@@ -24,8 +24,8 @@ export function buildMatrixFileContent(
   const rows = entries.map(a => {
     const row = [
       resolveFactionName(a.fazione, fazioni),
+      a.risultato,
       a.azione,
-      a.metodo,
       a.argomento_favorevole || '—',
       a.conflitti_con.map(id => resolveFactionName(id, fazioni)).join(', ') || '—',
     ];

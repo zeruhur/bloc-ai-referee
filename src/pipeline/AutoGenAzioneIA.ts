@@ -35,11 +35,11 @@ export async function autoGenAzioneIA(
   });
 
   const raw = response.parsed as Record<string, unknown>;
-  if (typeof raw?.metodo === 'string' && raw.metodo.length > 200) {
+  if (typeof raw?.azione === 'string' && raw.azione.length > 200) {
     console.warn(
-      `[autoGenAzioneIA] metodo troncato per ${fazione.nome}: ${raw.metodo.length} → 200 caratteri`,
+      `[autoGenAzioneIA] azione troncata per ${fazione.nome}: ${raw.azione.length} → 200 caratteri`,
     );
-    raw.metodo = raw.metodo.slice(0, 200);
+    raw.azione = raw.azione.slice(0, 200);
   }
 
   const validation = ActionDeclOutputZod.safeParse(raw);
@@ -50,7 +50,7 @@ export async function autoGenAzioneIA(
     );
   }
 
-  const { azione, metodo, argomento_favorevole } = validation.data;
+  const { risultato, azione, argomento_favorevole } = validation.data;
 
   await writeActionFile(app, slug, turno_corrente, {
     fazione: fazione.id,
@@ -58,8 +58,8 @@ export async function autoGenAzioneIA(
     turno: turno_corrente,
     tipo_azione: 'principale',
     categoria_azione: 'standard',
+    risultato,
     azione,
-    metodo,
     argomento_favorevole,
     argomenti_contro: [],
   });

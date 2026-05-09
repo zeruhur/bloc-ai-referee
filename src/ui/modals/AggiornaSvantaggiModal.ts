@@ -30,7 +30,7 @@ export class AggiornaSvantaggiModal extends Modal {
       this.argomenti.set(action.fazione, entries);
 
       const section = contentEl.createDiv({ cls: 'bloc-action-section' });
-      section.createEl('h3', { text: `${action.fazione}: ${action.azione}` });
+      section.createEl('h3', { text: `${action.fazione}: ${action.risultato}` });
 
       for (let i = 0; i < opponents.length; i++) {
         const opp = opponents[i];

@@ -136,7 +136,7 @@ export async function cmdEseguiTiri(app: App, plugin: BlocPlugin): Promise<void>
       rolls.push(withFazione);
 
       const nome = resolveFactionName(action.fazione, campagna.fazioni);
-      logContent += `## ${nome}: ${action.azione}\n`;
+      logContent += `## ${nome}: ${action.risultato}\n`;
       logContent += `- Seed: ${seed + rolls.length - 1}\n`;
       logContent += `- Pool: +${action.valutazione.pool.positivi} / -${action.valutazione.pool.negativi} (${action.valutazione.pool.modalita})\n`;
       logContent += `- Dadi: ${roll.dadi.join(', ')} → ${roll.risultato} (${ESITO_LABELS[roll.esito]})\n\n`;

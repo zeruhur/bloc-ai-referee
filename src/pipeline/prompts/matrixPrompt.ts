@@ -54,7 +54,7 @@ PROFILI FAZIONI:
 ${activeFazioni(campagna.fazioni).map(f => `- ${f.id} (${f.nome}): ${f.concetto}`).join('\n')}
 
 Genera la matrice delle azioni. Per ogni fazione indica:
-- azione dichiarata e metodo sintetico
+- risultato dichiarato e azione sintetica
 - argomento_favorevole: sintesi dell'argomento di vantaggio dichiarato dalla fazione (copialo fedelmente dalla dichiarazione)
 - conflitti_con: lista degli ID fazione con cui c'è sovrapposizione o conflitto diretto (vuota se nessuna)`;
 

@@ -33,8 +33,8 @@ const baseAction: AzioneDeclaration = {
   turno: 1,
   tipo_azione: 'principale',
   categoria_azione: 'standard',
-  azione: 'Attacca',
-  metodo: 'Assalto frontale',
+  risultato: 'Attacca',
+  azione: 'Assalto frontale',
   argomento_favorevole: 'Forza superiore',
   argomenti_contro: [],
 };

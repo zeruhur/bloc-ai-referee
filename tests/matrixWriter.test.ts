@@ -36,15 +36,15 @@ const fazioni: FazioneConfig[] = [
 const baseEntries: MatrixEntry[] = [
   {
     fazione: 'aquila-nord',
-    azione: 'Conquista territorio',
-    metodo: 'Militare',
+    risultato: 'Conquista territorio',
+    azione: 'Militare',
     argomento_favorevole: 'Forza militare superiore',
     conflitti_con: ['lupo-grigio'],
   },
   {
     fazione: 'lupo-grigio',
-    azione: 'Difesa perimetrale',
-    metodo: 'Tattico',
+    risultato: 'Difesa perimetrale',
+    azione: 'Tattico',
     argomento_favorevole: 'Conoscenza del terreno',
     conflitti_con: [],
   },
@@ -127,7 +127,7 @@ describe('mergeMatrixEntries', () => {
   it('preserves all existing fields after merge', () => {
     const updates = [{ fazione: 'aquila-nord', contro_argomentazione: 'test' }];
     const merged = mergeMatrixEntries(baseEntries, updates);
-    expect(merged[0].azione).toBe('Conquista territorio');
+    expect(merged[0].risultato).toBe('Conquista territorio');
     expect(merged[0].conflitti_con).toEqual(['lupo-grigio']);
   });
 });
@@ -144,8 +144,8 @@ describe('readMatrixEntries', () => {
   it('reads all entries from matrice-arbitro.md when present', async () => {
     const secretEntry: MatrixEntry = {
       fazione: 'ombra-segreta',
-      azione: 'Sabotaggio',
-      metodo: 'Infiltrazione',
+      risultato: 'Sabotaggio',
+      azione: 'Infiltrazione',
       argomento_favorevole: 'Invisibilità',
       conflitti_con: [],
     };
@@ -181,8 +181,8 @@ describe('writeMatrixFiles', () => {
   it('secret entries appear only in matrice-arbitro.md, not matrice.md', async () => {
     const secretEntry: MatrixEntry = {
       fazione: 'ombra-segreta',
-      azione: 'Sabotaggio',
-      metodo: 'Infiltrazione',
+      risultato: 'Sabotaggio',
+      azione: 'Infiltrazione',
       argomento_favorevole: 'Invisibilità',
       conflitti_con: [],
     };

@@ -2,8 +2,8 @@ import { z } from 'zod';
 
 const MatrixEntrySchema = z.object({
   fazione: z.string(),
+  risultato: z.string(),
   azione: z.string(),
-  metodo: z.string(),
   argomento_favorevole: z.string().nullish().transform(v => v ?? ''),
   conflitti_con: z.array(z.string()).nullish().transform(v => v ?? []),
 });
@@ -17,12 +17,12 @@ export const matrixOutputSchema = {
         type: 'object',
         properties: {
           fazione: { type: 'string' },
+          risultato: { type: 'string' },
           azione: { type: 'string' },
-          metodo: { type: 'string' },
           argomento_favorevole: { type: 'string' },
           conflitti_con: { type: 'array', items: { type: 'string' } },
         },
-        required: ['fazione', 'azione', 'metodo', 'argomento_favorevole', 'conflitti_con'],
+        required: ['fazione', 'risultato', 'azione', 'argomento_favorevole', 'conflitti_con'],
       },
     },
     matrice_arbitro: {
@@ -31,12 +31,12 @@ export const matrixOutputSchema = {
         type: 'object',
         properties: {
           fazione: { type: 'string' },
+          risultato: { type: 'string' },
           azione: { type: 'string' },
-          metodo: { type: 'string' },
           argomento_favorevole: { type: 'string' },
           conflitti_con: { type: 'array', items: { type: 'string' } },
         },
-        required: ['fazione', 'azione', 'metodo', 'argomento_favorevole', 'conflitti_con'],
+        required: ['fazione', 'risultato', 'azione', 'argomento_favorevole', 'conflitti_con'],
       },
     },
   },

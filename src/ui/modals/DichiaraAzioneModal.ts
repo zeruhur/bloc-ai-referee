@@ -175,17 +175,19 @@ export class DichiaraAzioneModal extends Modal {
     }
 
     new Setting(container)
-      .setName('Azione (max 80 car.)')
+      .setName('Risultato (max 80 car.)')
+      .setDesc('Cosa vuole ottenere la fazione.')
       .addText(t => {
-        t.setValue(this.decl.azione ?? '');
-        t.onChange(v => { this.decl.azione = v.slice(0, 80); });
+        t.setValue(this.decl.risultato ?? '');
+        t.onChange(v => { this.decl.risultato = v.slice(0, 80); });
       });
 
     new Setting(container)
-      .setName('Metodo (max 200 car.)')
+      .setName('Azione (max 200 car.)')
+      .setDesc('Come la fazione intende realizzarlo.')
       .addTextArea(t => {
-        t.setValue(this.decl.metodo ?? '');
-        t.onChange(v => { this.decl.metodo = v.slice(0, 200); });
+        t.setValue(this.decl.azione ?? '');
+        t.onChange(v => { this.decl.azione = v.slice(0, 200); });
       });
 
     new Setting(container)
@@ -208,7 +210,7 @@ export class DichiaraAzioneModal extends Modal {
   private async submit(): Promise<void> {
     const { campagna, decl, giocatore } = this;
 
-    if (!decl.fazione || !decl.azione || !decl.metodo || !decl.argomento_favorevole) {
+    if (!decl.fazione || !decl.risultato || !decl.azione || !decl.argomento_favorevole) {
       new Notice('Compila tutti i campi obbligatori.');
       return;
     }
@@ -230,8 +232,8 @@ export class DichiaraAzioneModal extends Modal {
       turno: turno_corrente,
       tipo_azione: 'principale',
       categoria_azione: decl.categoria_azione,
+      risultato: decl.risultato!,
       azione: decl.azione!,
-      metodo: decl.metodo!,
       argomento_favorevole: decl.argomento_favorevole!,
       argomenti_contro: [],
       leader_mode: this.leaderMode || undefined,

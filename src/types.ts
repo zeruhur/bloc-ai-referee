@@ -146,8 +146,8 @@ export interface AzioneDeclaration {
   turno: number;
   tipo_azione: TipoAzione;
   categoria_azione: CategoriaAzione;
+  risultato: string;
   azione: string;
-  metodo: string;
   argomento_favorevole: string;
   argomenti_contro: ArgomentoContro[];
   argomenti_aiuto?: ArgomentoContro[];
@@ -192,8 +192,8 @@ export interface MovimentoTurno {
 
 export interface MatrixEntry {
   fazione: string;
+  risultato: string;
   azione: string;
-  metodo: string;
   argomento_favorevole: string;
   conflitti_con: string[];
   // Progressive fields added by subsequent pipeline steps
