@@ -1,21 +1,31 @@
 /**
  * Migration script: rename azione→risultato and metodo→azione in vault files.
  *
- * Run from the Obsidian vault root:
- *   node /path/to/scripts/migrate-azione-risultato.mjs [--write]
+ * Run from the repo root, passing the vault path:
+ *   node scripts/migrate-azione-risultato.mjs --vault /path/to/vault
+ *   node scripts/migrate-azione-risultato.mjs --vault /path/to/vault --write
  *
  * Without --write: dry-run only (prints what would change).
  * With --write:    applies changes in place.
  */
 
 import { readFileSync, writeFileSync, readdirSync, statSync } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import yaml from 'js-yaml';
 
 const DRY_RUN = !process.argv.includes('--write');
 
+const vaultIdx = process.argv.indexOf('--vault');
+if (vaultIdx === -1 || !process.argv[vaultIdx + 1]) {
+  console.error('Usage: node scripts/migrate-azione-risultato.mjs --vault <path-to-vault> [--write]');
+  process.exit(1);
+}
+const VAULT_ROOT = resolve(process.argv[vaultIdx + 1]);
+
 if (DRY_RUN) {
-  console.log('DRY RUN — pass --write to apply changes\n');
+  console.log(`DRY RUN — vault: ${VAULT_ROOT}\nPass --write to apply changes\n`);
+} else {
+  console.log(`Applying changes to vault: ${VAULT_ROOT}\n`);
 }
 
 // ---- Helpers ----
@@ -142,7 +152,7 @@ function processLatentFile(path) {
 
 // ---- Main ----
 
-const CAMPAGNE_ROOT = 'campagne';
+const CAMPAGNE_ROOT = join(VAULT_ROOT, 'campagne');
 
 let total = 0;
 
