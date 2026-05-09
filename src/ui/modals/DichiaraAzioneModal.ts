@@ -111,7 +111,9 @@ export class DichiaraAzioneModal extends Modal {
     const btnRow = contentEl.createDiv({ cls: 'modal-button-container' });
     btnRow.createEl('button', { text: 'Annulla' }).addEventListener('click', () => this.close());
     btnRow.createEl('button', { text: 'Dichiara', cls: 'mod-cta' })
-      .addEventListener('click', () => void this.submit());
+      .addEventListener('click', () => {
+        this.submit().catch(e => new Notice(`Errore nella dichiarazione: ${(e as Error).message}`));
+      });
   }
 
   private renderActionSection(container: HTMLElement): void {
@@ -142,6 +144,7 @@ export class DichiaraAzioneModal extends Modal {
         .addDropdown(d => {
           d.addOption('', '— seleziona —');
           (fazione?.vantaggi ?? []).forEach(v => d.addOption(v, v));
+          if (this.decl.costo_vantaggio) d.setValue(this.decl.costo_vantaggio);
           d.onChange(v => { this.decl.costo_vantaggio = v || undefined; });
         });
     }
