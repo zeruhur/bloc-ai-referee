@@ -155,8 +155,8 @@ Usa **`BLOC: Dichiara azione`** per ogni fazione. Le fazioni marcate `tipo: ia` 
 |---|---|---|
 | **Fazione** | — | Seleziona tra le fazioni umane della campagna |
 | **Giocatore** | — | Nome o handle del giocatore |
-| **Azione** | 80 car. | Obiettivo sintetico dell'azione |
-| **Metodo** | 200 car. | Come viene eseguita |
+| **Azione** | libero | Obiettivo sintetico dell'azione |
+| **Metodo** | libero | Come viene eseguita |
 | **Argomento favorevole** | libero | *Perché* questa fazione ha le capacità e le condizioni per riuscire in questa azione specifica |
 | **Modalità leader** | — | Visibile solo se il leader è presente **e** disponibile (check del turno ≥ 4). Opzioni: *Nessuna*, *Presenza di Comando*, *Azione di Leadership* |
 | **Dettaglio narrativo** | libero | Solo per layer umano — **non inviato all'LLM** |

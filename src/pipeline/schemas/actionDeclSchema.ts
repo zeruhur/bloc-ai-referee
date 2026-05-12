@@ -11,7 +11,7 @@ export const actionDeclOutputSchema = {
 } as const;
 
 export const ActionDeclOutputZod = z.object({
-  risultato: z.string().max(80),
-  azione: z.string().max(200),
+  risultato: z.string(),
+  azione: z.string(),
   argomento_favorevole: z.string(),
 });

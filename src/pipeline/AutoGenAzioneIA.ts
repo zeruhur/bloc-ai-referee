@@ -35,12 +35,6 @@ export async function autoGenAzioneIA(
   });
 
   const raw = response.parsed as Record<string, unknown>;
-  if (typeof raw?.azione === 'string' && raw.azione.length > 200) {
-    console.warn(
-      `[autoGenAzioneIA] azione troncata per ${fazione.nome}: ${raw.azione.length} → 200 caratteri`,
-    );
-    raw.azione = raw.azione.slice(0, 200);
-  }
 
   const validation = ActionDeclOutputZod.safeParse(raw);
   if (!validation.success) {

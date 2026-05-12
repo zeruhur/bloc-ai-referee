@@ -175,15 +175,15 @@ export class DichiaraAzioneModal extends Modal {
     }
 
     new Setting(container)
-      .setName('Risultato (max 80 car.)')
+      .setName('Risultato')
       .setDesc('Cosa vuole ottenere la fazione.')
       .addText(t => {
         t.setValue(this.decl.risultato ?? '');
-        t.onChange(v => { this.decl.risultato = v.slice(0, 80); });
+        t.onChange(v => { this.decl.risultato = v; });
       });
 
     new Setting(container)
-      .setName('Azione (max 200 car.)')
+      .setName('Azione')
       .setDesc('Come la fazione intende realizzarlo.')
       .addTextArea(t => {
         t.setValue(this.decl.azione ?? '');
