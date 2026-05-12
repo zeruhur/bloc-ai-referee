@@ -74,7 +74,7 @@ export const AzioneDeclarationSchema = z.object({
   risultato: z.string(),
   azione: z.string(),
   argomento_favorevole: z.string(),
-  argomenti_contro: z.array(z.string()),
+  argomenti_contro: z.array(z.union([z.string(), z.object({ fazione: z.string(), argomento: z.string() }).transform(o => o.argomento)])).default([]),
   leader_mode: z.enum(['presenza_comando', 'azione_leadership', 'intervento_limitato']).optional(),
   costo_vantaggio: z.string().optional(),
   target_fazione: z.string().optional(),
