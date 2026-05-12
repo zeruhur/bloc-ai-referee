@@ -149,7 +149,7 @@ export interface AzioneDeclaration {
   risultato: string;
   azione: string;
   argomento_favorevole: string;
-  argomenti_contro: ArgomentoContro[];
+  argomenti_contro: string[];
   argomenti_aiuto?: ArgomentoContro[];
   leader_mode?: 'presenza_comando' | 'azione_leadership' | 'intervento_limitato';
   /** Cost paid for a secret action — the advantage sacrificed. */
@@ -223,7 +223,7 @@ export interface DicePool {
 }
 
 export interface ValutazioneArgomento {
-  /** 0-3 for vantaggio, 0-1 for each contro. */
+  /** 0-3 for vantaggio, 0-1 for each contro argument. */
   peso: number;
   motivazione: string;
 }
@@ -232,7 +232,7 @@ export interface EvaluationOutput {
   fazione: string;
   azione: string;
   valutazione_vantaggio: ValutazioneArgomento;
-  valutazioni_contro: ({ fazione: string } & ValutazioneArgomento)[];
+  valutazioni_contro: ValutazioneArgomento[];
   pool: DicePool;
 }
 

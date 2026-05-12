@@ -86,14 +86,10 @@ export async function runStepCounterArg(
 
       const existingAction = actions.find(a => a.fazione === entry.fazione_target);
       const existingArgomenti = (existingAction?.argomenti_contro ?? []).filter(
-        a => a.argomento.trim() !== '',
+        s => s.trim() !== '',
       );
-      const existingFazioni = new Set(existingArgomenti.map(a => a.fazione));
-
-      const fromLLM = entry.argomenti.filter(
-        a => a.argomento.trim() !== '' && a.fazione !== entry.fazione_target && !existingFazioni.has(a.fazione),
-      );
-
+      const existingSet = new Set(existingArgomenti);
+      const fromLLM = entry.argomenti.filter(s => s.trim() !== '' && !existingSet.has(s));
       const argomenti = [...existingArgomenti, ...fromLLM];
 
       for (const filePath of filePaths) {
@@ -125,11 +121,9 @@ export async function runStepCounterArg(
     // ---- Update matrix with contro_argomentazione ----
     const { publicEntries, allEntries } = await readMatrixEntries(app, slug, turno_corrente);
     const updates: Partial<MatrixEntry>[] = validation.data.contro_argomentazioni.map(ca => {
-      const argomenti = ca.argomenti.filter(
-        a => a.argomento.trim() !== '' && a.fazione !== ca.fazione_target,
-      );
+      const argomenti = ca.argomenti.filter(s => s.trim() !== '');
       const contro_argomentazione = argomenti.length > 0
-        ? argomenti.map(a => `[${a.fazione}]: ${a.argomento}`).join(' | ')
+        ? argomenti.join(' | ')
         : undefined;
       return { fazione: ca.fazione_target, contro_argomentazione };
     });

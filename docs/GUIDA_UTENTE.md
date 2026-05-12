@@ -173,13 +173,13 @@ Quando tutte le fazioni hanno dichiarato, usa **`BLOC: Genera matrice`**: l'LLM 
 
 **Stato richiesto:** `matrice_generata`
 
-Dopo aver condiviso `matrice.md` con i giocatori, le fazioni avversarie possono sollevare argomenti contrari. Hai due opzioni:
+Dopo aver condiviso `matrice.md` con i giocatori, è possibile sollevare obiezioni contestuali su ciascuna azione. Hai due opzioni:
 
-**`BLOC: Aggiorna svantaggi`** — form manuale con l'elenco delle azioni; inserisci l'argomento per ogni fazione avversaria (lascia vuoto se non si oppone). Ideale per campagne multiplayer con discussione tra i giocatori. Porta lo stato a `contro_args`.
+**`BLOC: Aggiorna svantaggi`** — form manuale con l'elenco delle azioni; per ognuna inserisci le contro-argomentazioni (una per riga), ovvero le ragioni contestuali per cui quell'azione potrebbe non riuscire. Ideale per campagne multiplayer con discussione tra i giocatori. Porta lo stato a `contro_args`.
 
-**`BLOC: Auto contro-argomentazione`** — l'LLM determina autonomamente quali fazioni si opporrebbero razionalmente a quali azioni e genera l'argomento. Ideale per campagne solitarie o per velocizzare il flusso. Porta lo stato a `contro_args`.
+**`BLOC: Auto contro-argomentazione`** — l'LLM analizza la matrice e genera per ogni azione tutte le obiezioni contestuali plausibili: ostacoli concreti, condizioni sfavorevoli, debolezze nell'argomento dichiarato. Gli argomenti sono valutazioni arbitrali del contesto, non dichiarazioni in-character delle fazioni. Ideale per campagne solitarie o per velocizzare il flusso. Porta lo stato a `contro_args`.
 
-**Flusso misto (giocatori umani + fazioni IA):** puoi usare i due comandi in sequenza. Prima `BLOC: Aggiorna svantaggi` per raccogliere i contributi umani, poi `BLOC: Auto contro-argomentazione` per colmare i gap rimasti vuoti. Il secondo comando riconosce gli argomenti già inseriti e aggiunge dall'LLM solo le fazioni avversarie non ancora coperte — il contributo umano non viene sovrascritto.
+**Flusso misto (giocatori umani + fazioni IA):** puoi usare i due comandi in sequenza. Prima `BLOC: Aggiorna svantaggi` per raccogliere i contributi umani, poi `BLOC: Auto contro-argomentazione` per integrare le obiezioni mancanti. Il secondo comando legge gli argomenti già presenti e aggiunge solo quelli non ancora coperti — il contributo umano non viene sovrascritto.
 
 ### Fase 2 — Valutazione e dadi
 
@@ -189,7 +189,7 @@ Dopo aver condiviso `matrice.md` con i giocatori, le fazioni avversarie possono 
 
 Per ogni azione l'LLM calcola:
 - **Peso argomento vantaggio**: 0–3 (quanti dadi positivi merita)
-- **Peso ogni contro-argomento**: 0 o 1 (se valido, aggiunge un dado negativo)
+- **Peso ogni contro-argomento**: 0 o 1 (se valido, aggiunge un dado negativo; il totale dipende dal numero di obiezioni valide)
 - **Pool risultante**: `positivi = peso vantaggio`, `negativi = somma pesi contro`
 - **Modalità di lettura**: `alto` (prendi il massimo), `basso` (prendi il minimo), `neutro` (primo dado)
 
@@ -618,7 +618,7 @@ Assicurati che Ollama sia in ascolto prima di usare i comandi. L'URL base predef
 | `BLOC: Movimento del turno` | `raccolta` | Registra movimenti su mappa (solo se `usa_mappa: true`) |
 | `BLOC: Dichiara azione` | `raccolta` | Auto-gen fazioni IA + form fazioni umane; se tutte IA lancia automaticamente Genera matrice |
 | `BLOC: Genera matrice` | `raccolta` | LLM Step 1 — produce `matrice.md` + `matrice-arbitro.md` |
-| `BLOC: Aggiorna svantaggi` | `matrice_generata` | Inserimento manuale contro-argomentazioni |
+| `BLOC: Aggiorna svantaggi` | `matrice_generata` | Inserimento manuale contro-argomentazioni (una per riga per ogni azione) |
 | `BLOC: Dichiara intervento reattivo` | `matrice_generata` | Registra aiuto (+1 dado) o svantaggio reattivo verso un'altra fazione (opzionale, multipli ammessi) |
 | `BLOC: Auto contro-argomentazione` | `matrice_generata` / `contro_args` | LLM genera le contro-argomentazioni (include interventi reattivi `aiuto` da `intervento-reattivo.md`); in flusso misto, fa merge con i contributi umani già presenti |
 | `BLOC: Valuta azioni` | `contro_args` | LLM Step 2 — valuta argomenti, calcola pool (+1 dado per `presenza_comando` e `aiuto`) |
@@ -671,13 +671,30 @@ Questo è fedele a come BLOC funziona: i vantaggi non sono token da spendere, ma
 
 ### Qual è la differenza tra "Aggiorna svantaggi" e "Auto contro-argomentazione"?
 
-`BLOC: Aggiorna svantaggi` apre un form dove inserisci manualmente gli argomenti contrari raccolti dai giocatori — ideale per campagne multiplayer con discussione asincrona. `BLOC: Auto contro-argomentazione` chiede all'LLM di generarli autonomamente — ideale per solitaria o per velocizzare il flusso.
+Entrambi generano contro-argomentazioni: ragioni contestuali per cui un'azione potrebbe non riuscire, scritte come valutazioni arbitrali del contesto di gioco (non dichiarazioni in-character delle fazioni).
 
-I due comandi sono **componibili**: in una campagna mista (giocatori umani + fazioni IA) puoi usare prima `Aggiorna svantaggi` per raccogliere i contributi umani, poi `Auto contro-argomentazione` per completare le fazioni rimanenti. Il secondo comando legge gli argomenti già presenti e aggiunge solo quelli mancanti — senza toccare ciò che i giocatori hanno scritto.
+`BLOC: Aggiorna svantaggi` apre un form con una textarea per ogni azione — inserisci le obiezioni a mano, una per riga, raccogliendo il contributo dei giocatori. Ideale per campagne multiplayer con discussione asincrona.
+
+`BLOC: Auto contro-argomentazione` chiede all'LLM di generarle autonomamente: per ogni azione produce tutte le obiezioni plausibili (anche zero, se non ci sono). Ideale per campagne solitarie o per velocizzare il flusso.
+
+I due comandi sono **componibili**: usa prima `Aggiorna svantaggi` per i contributi umani, poi `Auto contro-argomentazione` per integrare le obiezioni mancanti. Il secondo comando non sovrascrive gli argomenti già presenti.
 
 ### Ho eseguito un comando per errore — posso ripartire?
 
-Sì. Ogni step è idempotente: rieseguirlo sovrascrive l'output precedente previo conferma. Se necessario, puoi riportare manualmente lo stato in `campagna.yaml` al valore precedente (campo `meta.stato`).
+Sì. Ogni step è idempotente: rieseguirlo sovrascrive l'output precedente previo conferma.
+
+Per tornare a uno step precedente, apri `campagne/{slug}/campagna.md` e modifica il campo `stato` nel frontmatter con il valore desiderato:
+
+```yaml
+---
+meta:
+  stato: matrice_generata   # ← torna allo step contro-argomentazioni
+---
+```
+
+Valori validi: `raccolta`, `matrice_generata`, `contro_args`, `valutazione`, `tiri`, `review`.
+
+Dopo aver salvato, il comando corrispondente torna disponibile nella Command Palette. Per esempio, impostare `matrice_generata` riabilita `BLOC: Auto contro-argomentazione` e `BLOC: Aggiorna svantaggi`.
 
 ### Posso modificare la narrativa generata?
 

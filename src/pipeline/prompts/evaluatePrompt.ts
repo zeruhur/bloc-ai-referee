@@ -53,7 +53,7 @@ ${stringifyYaml(llmAction)}${tradimentoNote}
 
 REGOLE DI VALUTAZIONE:
 - "valutazione_vantaggio.peso" (0-3): quanti dadi positivi merita l'argomento di vantaggio della fazione, in base alla sua forza, pertinenza contestuale e coerenza con il profilo fazione. 0 = argomento invalido o irrilevante, 3 = argomento eccellente e decisivo.
-- Per ogni contro-argomento in "argomenti_contro", valuta "peso" (0-1): 0 = contro-argomento non valido o già confutato dall'azione, 1 = contro-argomento valido che aggiunge un dado negativo.
+- Per ogni stringa in "argomenti_contro", produci un elemento in "valutazioni_contro" con "peso" (0-1): 0 = obiezione non valida o già confutata dall'azione, 1 = obiezione valida che aggiunge un dado negativo. L'ordine degli elementi deve corrispondere all'ordine di "argomenti_contro".
 - "pool.positivi" = valutazione_vantaggio.peso
 - "pool.negativi" = somma dei pesi di valutazioni_contro
 - "pool.netto" = positivi - negativi

@@ -90,9 +90,9 @@ describe('buildMatrixFileContent', () => {
 
 describe('mergeMatrixEntries', () => {
   it('adds contro_argomentazione to matching entry', () => {
-    const updates = [{ fazione: 'aquila-nord', contro_argomentazione: '[lupo-grigio]: argomento test' }];
+    const updates = [{ fazione: 'aquila-nord', contro_argomentazione: 'argomento test' }];
     const merged = mergeMatrixEntries(baseEntries, updates);
-    expect(merged[0].contro_argomentazione).toBe('[lupo-grigio]: argomento test');
+    expect(merged[0].contro_argomentazione).toBe('argomento test');
     expect(merged[1].contro_argomentazione).toBeUndefined();
   });
 

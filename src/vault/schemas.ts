@@ -74,7 +74,7 @@ export const AzioneDeclarationSchema = z.object({
   risultato: z.string().max(80),
   azione: z.string().max(200),
   argomento_favorevole: z.string(),
-  argomenti_contro: z.array(ArgomentoControSchema),
+  argomenti_contro: z.array(z.string()),
   leader_mode: z.enum(['presenza_comando', 'azione_leadership', 'intervento_limitato']).optional(),
   costo_vantaggio: z.string().optional(),
   target_fazione: z.string().optional(),
@@ -86,7 +86,7 @@ export const AzioneDeclarationSchema = z.object({
       azione: z.string(),
       valutazione_vantaggio: z.object({ peso: z.number(), motivazione: z.string() }),
       valutazioni_contro: z.array(
-        z.object({ fazione: z.string(), peso: z.number(), motivazione: z.string() }),
+        z.object({ peso: z.number(), motivazione: z.string() }),
       ),
       pool: z.object({
         positivi: z.number(),

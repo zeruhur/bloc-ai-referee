@@ -1,12 +1,11 @@
 import { App, Modal, Notice } from 'obsidian';
-import type { ArgomentoContro, AzioneDeclaration, Campagna } from '../../types';
+import type { AzioneDeclaration, Campagna } from '../../types';
 import { actionFilePath } from '../../vault/ActionLoader';
 import { patchActionFrontmatter } from '../../vault/VaultManager';
 import { patchCampagnaStato } from '../../vault/CampaignWriter';
 
 export class AggiornaSvantaggiModal extends Modal {
-  // Map: fazione_target → list of {fazione, argomento} from each opponent
-  private argomenti: Map<string, ArgomentoContro[]> = new Map();
+  private argomenti: Map<string, string> = new Map();
 
   constructor(
     app: App,
@@ -21,28 +20,25 @@ export class AggiornaSvantaggiModal extends Modal {
     const { contentEl } = this;
     contentEl.createEl('h2', { text: 'Contro-argomentazioni' });
     contentEl.createEl('p', {
-      text: 'Per ogni azione, inserisci gli argomenti contrari delle fazioni avversarie (lascia vuoto se nessuno).',
+      text: 'Per ogni azione, inserisci le obiezioni contestuali (una per riga). Lascia vuoto se non ce ne sono.',
     });
 
     for (const action of this.actions) {
-      const opponents = this.campagna.fazioni.filter(f => f.id !== action.fazione);
-      const entries: ArgomentoContro[] = opponents.map(f => ({ fazione: f.id, argomento: '' }));
-      this.argomenti.set(action.fazione, entries);
+      const existing = (action.argomenti_contro ?? []).join('\n');
+      this.argomenti.set(action.fazione, existing);
 
       const section = contentEl.createDiv({ cls: 'bloc-action-section' });
       section.createEl('h3', { text: `${action.fazione}: ${action.risultato}` });
+      section.createEl('p', { text: 'Contro-argomentazioni (una per riga):', cls: 'setting-item-name' });
 
-      for (let i = 0; i < opponents.length; i++) {
-        const opp = opponents[i];
-        section.createEl('p', { text: `Argomento da ${opp.nome} (${opp.id}):`, cls: 'setting-item-name' });
-        const ta = section.createEl('textarea', {
-          cls: 'bloc-argomento-textarea',
-          attr: { rows: '2', style: 'width:100%;margin-bottom:8px' },
-        });
-        ta.addEventListener('input', () => {
-          entries[i].argomento = ta.value.trim();
-        });
-      }
+      const ta = section.createEl('textarea', {
+        cls: 'bloc-argomento-textarea',
+        attr: { rows: '4', style: 'width:100%;margin-bottom:8px' },
+      });
+      ta.value = existing;
+      ta.addEventListener('input', () => {
+        this.argomenti.set(action.fazione, ta.value);
+      });
     }
 
     const btnRow = contentEl.createDiv({ cls: 'modal-button-container' });
@@ -55,8 +51,8 @@ export class AggiornaSvantaggiModal extends Modal {
     const { campagna } = this;
 
     for (const action of this.actions) {
-      const entries = this.argomenti.get(action.fazione) ?? [];
-      const argomenti = entries.filter(e => e.argomento !== '');
+      const raw = this.argomenti.get(action.fazione) ?? '';
+      const argomenti = raw.split('\n').map(s => s.trim()).filter(s => s !== '');
       const filePath = actionFilePath(
         campagna.meta.slug,
         campagna.meta.turno_corrente,

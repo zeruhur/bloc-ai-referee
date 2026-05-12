@@ -20,11 +20,10 @@ export const evaluateOutputSchema = {
       items: {
         type: 'object',
         properties: {
-          fazione: { type: 'string' },
           peso: { type: 'integer' },
           motivazione: { type: 'string' },
         },
-        required: ['fazione', 'peso', 'motivazione'],
+        required: ['peso', 'motivazione'],
       },
     },
     pool: {
@@ -46,7 +45,7 @@ export const EvaluateOutputZod = z.object({
   azione: z.string(),
   valutazione_vantaggio: z.object({ peso: z.number(), motivazione: z.string() }),
   valutazioni_contro: z.array(
-    z.object({ fazione: z.string(), peso: z.number(), motivazione: z.string() }),
+    z.object({ peso: z.number(), motivazione: z.string() }),
   ),
   pool: z.object({
     positivi: z.number(),
