@@ -123,7 +123,7 @@ export async function runStepCounterArg(
     const updates: Partial<MatrixEntry>[] = validation.data.contro_argomentazioni.map(ca => {
       const argomenti = ca.argomenti.filter(s => s.trim() !== '');
       const contro_argomentazione = argomenti.length > 0
-        ? argomenti.join(' | ')
+        ? argomenti.map(a => `- ${a}`).join('<br>')
         : undefined;
       return { fazione: ca.fazione_target, contro_argomentazione };
     });

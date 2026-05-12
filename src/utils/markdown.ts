@@ -1,7 +1,11 @@
+function escapeCell(s: string): string {
+  return s.replace(/\|/g, '\\|');
+}
+
 export function markdownTable(headers: string[], rows: string[][]): string {
-  const header = `| ${headers.join(' | ')} |`;
+  const header = `| ${headers.map(escapeCell).join(' | ')} |`;
   const separator = `| ${headers.map(() => '---').join(' | ')} |`;
-  const body = rows.map(row => `| ${row.join(' | ')} |`).join('\n');
+  const body = rows.map(row => `| ${row.map(escapeCell).join(' | ')} |`).join('\n');
   return [header, separator, body].join('\n');
 }
 
